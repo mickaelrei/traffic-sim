@@ -12,7 +12,7 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
-car = Car(Vector2(WIDTH/2, HEIGHT/2), texturePath="img/cars.png", textureScale=1.5, textureOffsetAngle=-90)
+car = Car(Vector2(WIDTH/2, HEIGHT/2), size=25, texturePath="img/car.png", textureScale=1.5, textureOffsetAngle=-90)
 
 getTicksLastFrame = pygame.time.get_ticks()
 speed = 150

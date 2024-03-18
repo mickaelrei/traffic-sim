@@ -9,7 +9,7 @@ WHEEL_DISTANCE_ASPECT_RATIO = 1.8
 WHEEL_SIZE_RATIO = 0.1
 
 # Max car steering angle
-MAX_STEERING_ANGLE = math.pi * 0.17
+MAX_STEERING_ANGLE = math.pi * 0.14
 
 def rotatePointAroundPivot(point: Vector2, pivot: Vector2, angle: float) -> Vector2:
     s = math.sin(angle)
