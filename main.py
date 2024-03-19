@@ -2,7 +2,7 @@ from model.car import *
 import pygame
 import sys
 
-WIDTH = 600
+WIDTH = 400
 HEIGHT = 600
 FPS = 60
 window = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -12,11 +12,22 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
-car = Car(Vector2(WIDTH/2, HEIGHT/2), size=25, texturePath="img/car.png", textureScale=1.5, textureOffsetAngle=-90)
+# Create car instance
+car = Car(
+    Vector2(WIDTH/2, HEIGHT/2),
+    size=15,
+    texturePath="img/car.png",
+    textureScale=1.35,
+    textureOffsetAngle=-90,
+    wheelAxisAspectRatio=1.8,
+)
+
+# Road background
+road = pygame.image.load("img/road.jpg")
+road = pygame.transform.scale(road, (WIDTH, HEIGHT))
 
 getTicksLastFrame = pygame.time.get_ticks()
-speed = 150
-rotation = 0
+debug = False
 while True:
     # Calculate dt
     t = pygame.time.get_ticks()
@@ -33,30 +44,31 @@ while True:
             sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
-                car.speed += speed
+                car.setAccelerating(True)
             elif event.key == pygame.K_s:
-                car.speed += -speed
-            elif event.key == pygame.K_a:
-                car.steeringRotation += -1
-            elif event.key == pygame.K_d:
-                car.steeringRotation += 1
+                car.setBraking(True)
+            elif event.key == pygame.K_e:
+                car.reverse = not car.reverse
+            elif event.key == pygame.K_f:
+                debug = not debug
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
-                car.speed -= speed
+                car.setAccelerating(False)
             elif event.key == pygame.K_s:
-                car.speed -= -speed
-            elif event.key == pygame.K_a:
-                car.steeringRotation -= -1
-            elif event.key == pygame.K_d:
-                car.steeringRotation -= 1
+                car.setBraking(False)
 
     # Clear window
     window.fill(BLACK)
 
+    # Draw road
+    window.blit(road, (0, 0))
+
     # Update and draw car
-    car.steeringRotation = (mouseX / WIDTH - 0.5) * 2
-    car.update(dt, window)
-    car.draw(window)
+    car.setSteering((mouseX / WIDTH - 0.5) * 2)
+    car.update(dt)
+    car.draw(window, debug=debug)
+
+    print(car.velocity)
 
     # Update window
     pygame.display.update()
