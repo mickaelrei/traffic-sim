@@ -46,6 +46,14 @@ def clamp(x: float, min: float, max: float) -> float:
         return max
     return x
 
+# TODO: Change this to class Vehicle, and make other inherited classes such as:
+# - Car
+# - Bus
+# - Truck
+# - Bike
+#
+# Vehicles can have any amount of wheels with any offset, so only passing
+# wheel axis aspect ratio is not enough
 class Car:
     def __init__(
         self,
@@ -62,17 +70,17 @@ class Car:
         # Car size in pixels, for rendering purposes
         self.size = size
 
-        # Whether the car is accelerating or not
-        self.accelerating = False
+        # How much the car is accelerating (between 0 and 1)
+        self.accelerationAmount = 0
         
-        # Whether the car is braking or not
-        self.braking = False
+        # How much the car is braking (between 0 and 1)
+        self.brakeAmount = 0
 
         # Whether the car is in reverse gear or not
         self.reverse = False
 
         # How fast the car accelerates (hardcoded for now)
-        self.acceleration = 70
+        self.accelerationSpeed = 70
 
         # How fast the car brakes (hardcoded for now)
         self.brakeForce = 105
@@ -133,11 +141,13 @@ class Car:
     def setSteering(self, steering: float) -> None:
         self.steering = clamp(steering, -1, 1)
 
-    def setAccelerating(self, accelerating: bool) -> None:
-        self.accelerating = accelerating
+    # Set car acceleration (between 0 and 1)
+    def setAccelerationAmount(self, accelerationAmount: float) -> None:
+        self.accelerationAmount = clamp(accelerationAmount, 0, 1)    
 
-    def setBraking(self, braking: bool) -> None:
-        self.braking = braking
+    # Set car brake amount (between 0 and 1)
+    def setBrakeAmount(self, brakeAmount: float) -> None:
+        self.brakeAmount = clamp(brakeAmount, 0, 1)
 
     # Distance between left and right wheels
     def horizontalWheelDist(self) -> float:
@@ -162,22 +172,27 @@ class Car:
     def update(self, dt: float) -> None:
         # Update velocity
         # ---------------
-        if self.accelerating:
-            self.velocity = clamp(
-                self.velocity + self.acceleration * dt * (-1 if self.reverse else 1),
-                -self.maxVelocity,
-                self.maxVelocity
-            )
+
+        # Decrease velocity based on wheel friction
+        if self.velocity > 0:
+            self.velocity = max(0, self.velocity - WHEEL_GROUND_FRICTION * dt)
         else:
-            if self.velocity > 0:
-                self.velocity = max(0, self.velocity - WHEEL_GROUND_FRICTION * dt)
-            else:
-                self.velocity = min(0, self.velocity + WHEEL_GROUND_FRICTION * dt)
-        if self.braking:
-            if self.velocity > 0:
-                self.velocity = max(0, self.velocity - self.brakeForce * dt)
-            else:
-                self.velocity = min(0, self.velocity + self.brakeForce * dt)
+            self.velocity = min(0, self.velocity + WHEEL_GROUND_FRICTION * dt)
+
+        # Increase velocity based on how much acceleration
+        self.velocity = clamp(
+            self.velocity
+                + self.accelerationSpeed * self.accelerationAmount
+                * (-1 if self.reverse else 1) * dt,
+            -self.maxVelocity,
+            self.maxVelocity
+        )
+
+        # Decrease velocity based on how much braking
+        if self.velocity > 0:
+            self.velocity = max(0, self.velocity - self.brakeForce * self.brakeAmount * dt)
+        else:
+            self.velocity = min(0, self.velocity + self.brakeForce * self.brakeAmount * dt)
 
         # Check if almost no steering
         if abs(self.steering) < 0.01:
@@ -200,6 +215,7 @@ class Car:
 
         # Calculate rotation angle
         rotationAngle = self.velocity * dt / totalDist
+
         # Rotate current position around pivot
         self.pos = rotatePointAroundPivot(self.pos, pivotCenter, rotationAngle)
         self.rotation += rotationAngle

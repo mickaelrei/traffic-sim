@@ -1,9 +1,12 @@
-from model.car import *
+from model.car import Car
+from model.driver import Driver
+from model.traffic_sim import TrafficSim
 import pygame
 import sys
+from pygame.math import Vector2
 
-WIDTH = 400
-HEIGHT = 600
+WIDTH = 600
+HEIGHT = 800
 FPS = 60
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
@@ -15,16 +18,32 @@ RED = (255, 0, 0)
 # Create car instance
 car = Car(
     Vector2(WIDTH/2, HEIGHT/2),
-    size=15,
+    size=20,
     texturePath="img/car.png",
     textureScale=1.35,
     textureOffsetAngle=-90,
     wheelAxisAspectRatio=1.8,
 )
 
+# Create driver instance
+driver = Driver(
+    car=car
+)
+
+# Create main traffic simulation instance
+trafficSim = TrafficSim()
+
+# Add driver to list
+trafficSim.addDriver(driver)
+
 # Road background
 road = pygame.image.load("img/road.jpg")
 road = pygame.transform.scale(road, (WIDTH, HEIGHT))
+
+# Steering wheel
+STEERING_WHEEL_SIZE = WIDTH * 0.3
+steering_wheel = pygame.image.load("img/steering_wheel.png")
+steering_wheel = pygame.transform.scale(steering_wheel, (STEERING_WHEEL_SIZE, STEERING_WHEEL_SIZE))
 
 getTicksLastFrame = pygame.time.get_ticks()
 debug = False
@@ -44,18 +63,18 @@ while True:
             sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
-                car.setAccelerating(True)
+                car.setAccelerationAmount(1)
             elif event.key == pygame.K_s:
-                car.setBraking(True)
+                car.setBrakeAmount(1)
             elif event.key == pygame.K_e:
                 car.reverse = not car.reverse
             elif event.key == pygame.K_f:
                 debug = not debug
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
-                car.setAccelerating(False)
+                car.setAccelerationAmount(0)
             elif event.key == pygame.K_s:
-                car.setBraking(False)
+                car.setBrakeAmount(0)
 
     # Clear window
     window.fill(BLACK)
@@ -63,10 +82,17 @@ while True:
     # Draw road
     window.blit(road, (0, 0))
 
-    # Update and draw car
+    # Manually update main car steering for mouse control
     car.setSteering((mouseX / WIDTH - 0.5) * 2)
-    car.update(dt)
-    car.draw(window, debug=debug)
+
+    # Update and draw traffic
+    trafficSim.update(dt)
+    trafficSim.draw(window, debug)
+
+    # Draw steering wheel
+    rotated_steering_wheel = pygame.transform.rotate(steering_wheel, -car.steering * 180)
+    rect = rotated_steering_wheel.get_rect(center = (WIDTH * .5, HEIGHT - STEERING_WHEEL_SIZE / 2 - 25))
+    window.blit(rotated_steering_wheel, rect)
 
     print(car.velocity)
 
