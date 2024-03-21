@@ -5,8 +5,14 @@ from pygame.math import Vector2
 # Wheel to car size ratio
 WHEEL_SIZE_RATIO = 0.22
 
-# Max car steering angle
+# Max car steering angle, possible with low velocity
 MAX_STEERING_ANGLE = math.pi * 0.17
+
+# Min car steering angle, when at max velocity
+MIN_STEERING_ANGLE = math.pi * 0.05
+
+# Max car velocity
+MAX_VELOCITY = 250
 
 # How much a car's velocity gets affected by wheel friction to the ground
 WHEEL_GROUND_FRICTION = 10
@@ -91,9 +97,6 @@ class Car:
         # Current car velocity
         self.velocity = 0
 
-        # Car's max velocity (hardcoded for now)
-        self.maxVelocity = 250
-
         # Car rotation/inclination
         self.rotation = 0
 
@@ -168,6 +171,11 @@ class Car:
 
         # Negate because of pygame coordinate system
         return -Vector2(x, y)
+    
+    # Calculates current wheel angle based on steering and velocity
+    def wheelAngle(self) -> float:
+        steeringAngle = MAX_STEERING_ANGLE + (MIN_STEERING_ANGLE - MAX_STEERING_ANGLE) * (self.velocity / MAX_VELOCITY)**2
+        return math.pi * 0.5 - self.steering * steeringAngle
 
     def update(self, dt: float) -> None:
         # Update velocity
@@ -184,8 +192,8 @@ class Car:
             self.velocity
                 + self.accelerationSpeed * self.accelerationAmount
                 * (-1 if self.reverse else 1) * dt,
-            -self.maxVelocity,
-            self.maxVelocity
+            -MAX_VELOCITY,
+            MAX_VELOCITY
         )
 
         # Decrease velocity based on how much braking
@@ -200,14 +208,11 @@ class Car:
             self.pos += self.direction() * self.velocity * dt
             return
 
-        # Calculate wheel angle
-        wheelAngle = math.pi * 0.5 - self.steering * MAX_STEERING_ANGLE
-
         # Find rotation pivot
         carDirection = self.direction()
         directionNormal = Vector2(-carDirection.y, carDirection.x)
         verticalWheelDist = self.verticalWheelDist()
-        pivotSideDist = math.tan(wheelAngle) * verticalWheelDist / 2
+        pivotSideDist = math.tan(self.wheelAngle()) * verticalWheelDist / 2
         totalDist = self.horizontalWheelDist() * sign(pivotSideDist) / 2 + pivotSideDist
         pivotCenter = self.pos \
                       - carDirection * verticalWheelDist / 2 \
@@ -220,7 +225,7 @@ class Car:
         self.pos = rotatePointAroundPivot(self.pos, pivotCenter, rotationAngle)
         self.rotation += rotationAngle
 
-    def draw(self, surface: pygame.Surface, debug: bool=False) -> None:
+    def draw(self, surface: pygame.Surface, offset: Vector2=Vector2(0, 0), debug: bool=False) -> None:
         # Get wheel distances
         halfX = self.horizontalWheelDist() / 2
         halfY = self.verticalWheelDist() / 2
@@ -239,12 +244,12 @@ class Car:
 
             # Left wheel
             # ----------
-            rect = rotated.get_rect(center = self.texture.get_rect(center = frontLeft).center)
+            rect = rotated.get_rect(center = self.texture.get_rect(center = frontLeft + offset).center)
             surface.blit(rotated, rect)
 
             # Right wheel
             # ----------
-            rect = rotated.get_rect(center = self.texture.get_rect(center = frontRight).center)
+            rect = rotated.get_rect(center = self.texture.get_rect(center = frontRight + offset).center)
             surface.blit(rotated, rect)
 
         # Check if has body texture
@@ -252,36 +257,35 @@ class Car:
             # Rotate
             rotated = pygame.transform.rotate(self.texture, math.degrees(-self.rotation))
             # Position in center
-            rect = rotated.get_rect(center = self.texture.get_rect(center = self.pos).center)
+            rect = rotated.get_rect(center = self.texture.get_rect(center = self.pos + offset).center)
             surface.blit(rotated, rect)
 
         if debug:
             # Car wheels
             # ----------
-            pygame.draw.circle(surface, (255, 0, 0), frontLeft, wheelSize)
-            pygame.draw.circle(surface, (255, 0, 0), frontRight, wheelSize)
-            pygame.draw.circle(surface, (255, 0, 0), backLeft, wheelSize)
-            pygame.draw.circle(surface, (255, 0, 0), backRight, wheelSize)
+            pygame.draw.circle(surface, (255, 0, 0), frontLeft + offset, wheelSize)
+            pygame.draw.circle(surface, (255, 0, 0), frontRight + offset, wheelSize)
+            pygame.draw.circle(surface, (255, 0, 0), backLeft + offset, wheelSize)
+            pygame.draw.circle(surface, (255, 0, 0), backRight + offset, wheelSize)
 
             # Car chassis outline
             # -------------------
-            pygame.draw.line(surface, (255, 255, 255), backLeft, frontLeft)
-            pygame.draw.line(surface, (255, 255, 255), frontLeft, frontRight)
-            pygame.draw.line(surface, (255, 255, 255), frontRight, backRight)
-            pygame.draw.line(surface, (255, 255, 255), backRight, backLeft)
+            pygame.draw.line(surface, (255, 255, 255), backLeft + offset, frontLeft + offset)
+            pygame.draw.line(surface, (255, 255, 255), frontLeft + offset, frontRight + offset)
+            pygame.draw.line(surface, (255, 255, 255), frontRight + offset, backRight + offset)
+            pygame.draw.line(surface, (255, 255, 255), backRight + offset, backLeft + offset)
 
             # Wheel path trajectory
             # ---------------------
-            wheelAngle = math.pi * 0.5 - self.steering * MAX_STEERING_ANGLE
             carDirection = self.direction()
             directionNormal = Vector2(-carDirection.y, carDirection.x)
             verticalWheelDist = self.verticalWheelDist()
-            pivotSideDist = math.tan(wheelAngle) * verticalWheelDist / 2
+            pivotSideDist = math.tan(self.wheelAngle()) * verticalWheelDist / 2
             totalDist = self.horizontalWheelDist() * sign(pivotSideDist) / 2 + pivotSideDist
             pivotCenter = self.pos \
                         - carDirection * verticalWheelDist / 2 \
                         + directionNormal * totalDist
-            pygame.draw.circle(surface, (127, 0, 255), pivotCenter, (frontLeft - pivotCenter).length(), 1)
-            pygame.draw.circle(surface, (127, 0, 255), pivotCenter, (frontRight - pivotCenter).length(), 1)
-            pygame.draw.circle(surface, (0, 255, 0), pivotCenter, (backLeft - pivotCenter).length(), 1)
-            pygame.draw.circle(surface, (0, 255, 0), pivotCenter, (backRight - pivotCenter).length(), 1)
+            pygame.draw.circle(surface, (127, 0, 255), pivotCenter + offset, (frontLeft - pivotCenter).length(), 1)
+            pygame.draw.circle(surface, (127, 0, 255), pivotCenter + offset, (frontRight - pivotCenter).length(), 1)
+            pygame.draw.circle(surface, (0, 255, 0), pivotCenter + offset, (backLeft - pivotCenter).length(), 1)
+            pygame.draw.circle(surface, (0, 255, 0), pivotCenter + offset, (backRight - pivotCenter).length(), 1)
