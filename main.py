@@ -1,9 +1,10 @@
 from model.car import Car
 from model.driver import Driver
 from model.traffic_sim import TrafficSim
-from model.road import Road, StraightRoad, CurveRoad
+from model.road import Road, StraightRoad, TopLeftCurvedRoad, TopRightCurvedRoad, BottomLeftCurvedRoad, BottomRightCurvedRoad
 import pygame
 import sys
+import math
 from pygame.math import Vector2
 
 WIDTH = 600
@@ -18,7 +19,7 @@ RED = (255, 0, 0)
 
 # Create car instance
 car = Car(
-    Vector2(WIDTH/2, HEIGHT/2),
+    Vector2(WIDTH/4, 3*HEIGHT/4),
     size=20,
     texturePath="img/car.png",
     textureScale=1.35,
@@ -37,10 +38,6 @@ trafficSim = TrafficSim()
 # Add driver to list
 trafficSim.addDriver(driver)
 
-# Road background
-roadTexture = pygame.image.load("img/road.jpg")
-roadTexture = pygame.transform.scale(roadTexture, (WIDTH, HEIGHT))
-
 # Steering wheel
 STEERING_WHEEL_SIZE = WIDTH * 0.3
 steeringWheel = pygame.image.load("img/steering_wheel.png")
@@ -48,9 +45,31 @@ steeringWheel = pygame.transform.scale(
     steeringWheel, (STEERING_WHEEL_SIZE, STEERING_WHEEL_SIZE)
 )
 
-getTicksLastFrame = pygame.time.get_ticks()
+# Testing curve roads
+roadWidth = 110
+arcOffset = 110
+
+# Straight line roads for each of the 4 directions
+roadLeft = StraightRoad(roadWidth, Vector2(0, HEIGHT/2), Vector2(WIDTH/2 - roadWidth/2 - arcOffset, HEIGHT/2))
+roadRight = StraightRoad(roadWidth, Vector2(WIDTH, HEIGHT/2), Vector2(WIDTH/2 + roadWidth/2 + arcOffset, HEIGHT/2))
+roadBottom = StraightRoad(roadWidth, Vector2(WIDTH/2, HEIGHT), Vector2(WIDTH/2, HEIGHT/2 + roadWidth/2 + arcOffset))
+roadTop = StraightRoad(roadWidth, Vector2(WIDTH/2, 0), Vector2(WIDTH/2, HEIGHT/2 - roadWidth/2 - arcOffset))
+
+# Curved roads, one for each of the 4 directions
+curvedTopLeftRoad = TopLeftCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
+curvedTopRightRoad = TopRightCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
+curvedBottomLeftRoad = BottomLeftCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
+curvedBottomRightRoad = BottomRightCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
+
+# States
 debug = False
 focused = False
+curveMode = 0
+
+# Used to calculate dt
+getTicksLastFrame = pygame.time.get_ticks()
+
+# Main game loop
 while True:
     # Calculate dt
     t = pygame.time.get_ticks()
@@ -62,9 +81,11 @@ while True:
 
     # Check for events
     for event in pygame.event.get():
+        # If press ESC or close window, stop program
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             pygame.quit()
             sys.exit()
+        # Check for key presses
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
                 car.setAccelerationAmount(1)
@@ -76,6 +97,9 @@ while True:
                 debug = not debug
             elif event.key == pygame.K_g:
                 focused = not focused
+            elif event.key == pygame.K_c:
+                curveMode = (curveMode + 1) % 4
+        # Check for key releases
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
                 car.setAccelerationAmount(0)
@@ -91,11 +115,24 @@ while True:
     else:
         carOffset = Vector2(0, 0)
 
-    # Draw road
-    window.blit(roadTexture, carOffset)
+    # Draw the straight roads
+    roadLeft.draw(window, offset=carOffset)
+    roadRight.draw(window, offset=carOffset)
+    roadTop.draw(window, offset=carOffset)
+    roadBottom.draw(window, offset=carOffset)
 
-    # Manually update main car steering for mouse control
-    car.setSteering((mouseX / WIDTH - 0.5) * 2)
+    # Draw the currently selected curved road
+    if curveMode == 0:
+        curvedTopLeftRoad.draw(window, offset=carOffset)
+    elif curveMode == 1:
+        curvedTopRightRoad.draw(window, offset=carOffset)
+    elif curveMode == 2:
+        curvedBottomLeftRoad.draw(window, offset=carOffset)
+    else:
+        curvedBottomRightRoad.draw(window, offset=carOffset)
+
+    # Manually update car steering based on mouse horizontal position (for now)
+    car.setSteering(mouseX / WIDTH * 2 - 1)
 
     # Update and draw traffic
     trafficSim.update(dt)
