@@ -1,7 +1,7 @@
 from model.car import Car
 from model.driver import Driver
 from model.traffic_sim import TrafficSim
-from model.road import Road, StraightRoad, TopLeftCurvedRoad, TopRightCurvedRoad, BottomLeftCurvedRoad, BottomRightCurvedRoad
+from model.road import Road, StraightRoad, CurvedRoad, topLeftCurvedRoad, topRightCurvedRoad, bottomLeftCurvedRoad, bottomRightCurvedRoad
 import pygame
 import sys
 import math
@@ -19,7 +19,7 @@ RED = (255, 0, 0)
 
 # Create car instance
 car = Car(
-    Vector2(WIDTH/4, 3*HEIGHT/4),
+    Vector2(WIDTH/2, HEIGHT/2),
     size=20,
     texturePath="img/car.png",
     textureScale=1.35,
@@ -47,7 +47,7 @@ steeringWheel = pygame.transform.scale(
 
 # Testing curve roads
 roadWidth = 110
-arcOffset = 110
+arcOffset = 70
 
 # Straight line roads for each of the 4 directions
 roadLeft = StraightRoad(roadWidth, Vector2(0, HEIGHT/2), Vector2(WIDTH/2 - roadWidth/2 - arcOffset, HEIGHT/2))
@@ -56,10 +56,10 @@ roadBottom = StraightRoad(roadWidth, Vector2(WIDTH/2, HEIGHT), Vector2(WIDTH/2, 
 roadTop = StraightRoad(roadWidth, Vector2(WIDTH/2, 0), Vector2(WIDTH/2, HEIGHT/2 - roadWidth/2 - arcOffset))
 
 # Curved roads, one for each of the 4 directions
-curvedTopLeftRoad = TopLeftCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
-curvedTopRightRoad = TopRightCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
-curvedBottomLeftRoad = BottomLeftCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
-curvedBottomRightRoad = BottomRightCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
+curvedTopLeftRoad = topLeftCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
+curvedTopRightRoad = topRightCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
+curvedBottomLeftRoad = bottomLeftCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
+curvedBottomRightRoad = bottomRightCurvedRoad(roadWidth, Vector2(WIDTH/2, HEIGHT/2), arcOffset)
 
 # States
 debug = False

@@ -68,69 +68,61 @@ class CurvedRoad(Road):
         self.arcOffset = arcOffset
         self.curveAngle = curveAngle
 
-    def draw(self, surface: pygame.Surface, offset: Vector2 = Vector2(0, 0), debug: bool = False) -> None:
-        # Get initial and final arc angle
-        # -------------------------------
-        initialAngle = self.curveAngle - math.pi / 4
-        finalAngle = initialAngle + math.pi / 2
+        # Cache some variables that get used on draw and never change
+        self.cos = math.cos(self.curveAngle)
+        self.sin = math.sin(self.curveAngle)
+        self.initialAngle = self.curveAngle - math.pi / 4
+        self.finalAngle = self.initialAngle + math.pi / 2
 
+    def draw(self, surface: pygame.Surface, offset: Vector2 = Vector2(0, 0), debug: bool = False) -> None:
         # Calculate rect center and size for outer arc
         # --------------------------------------------
         rectSize = 2 * (self.width + self.arcOffset)
-        centerOffsetLength = math.sqrt(2) * (self.width + self.arcOffset / 2)
         rect = pygame.Rect(0, 0, rectSize, rectSize)
-        c = math.cos(self.curveAngle)
-        s = math.sin(self.curveAngle)
+        offsetLength = math.sqrt(2) * (self.width / 2 + self.arcOffset)
         rect.center = (
-            self.center.x - c * centerOffsetLength + offset.x,
-            self.center.y + s * centerOffsetLength + offset.y
+            self.center.x - self.cos * offsetLength + offset.x,
+            self.center.y + self.sin * offsetLength + offset.y
         )
         # Draw outer arc
-        # pygame.draw.rect(surface, (255, 0, 0), rect, 1)
-        pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, initialAngle, finalAngle, 1)
+        pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, self.initialAngle, self.finalAngle, 1)
 
         # Calculate rect center and size for inner arc
         # --------------------------------------------
-        rectSize = self.width + self.arcOffset
+        rectSize = self.arcOffset * 2
+        offsetLength = math.sqrt(2) * (self.width / 2 + self.arcOffset)
         rect.size = (rectSize, rectSize)
         rect.center = (
-            self.center.x - c * centerOffsetLength + offset.x,
-            self.center.y + s * centerOffsetLength + offset.y
+            self.center.x - self.cos * offsetLength + offset.x,
+            self.center.y + self.sin * offsetLength + offset.y
         )
-        # pygame.draw.rect(surface, (0, 255, 0), rect, 1)
-        pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, initialAngle, finalAngle, 1)
+        # Draw inner arc
+        pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, self.initialAngle, self.finalAngle, 1)
 
         # Calculate rect center and size for middle yellow stripe arc
         # -----------------------------------------------------------
-        rectSize = self.width + self.arcOffset * 2
+        rectSize = 2 * (self.width / 2 + self.arcOffset)
+        offsetLength = math.sqrt(2) * (self.width / 2 + self.arcOffset)
         rect.size = (rectSize, rectSize)
         rect.center = (
-            self.center.x - c * centerOffsetLength + offset.x,
-            self.center.y + s * centerOffsetLength + offset.y
+            self.center.x - self.cos * offsetLength + offset.x,
+            self.center.y + self.sin * offsetLength + offset.y
         )
-        # pygame.draw.rect(surface, (0, 255, 0), rect, 1)
-        pygame.draw.arc(surface, ROAD_YELLOW_STRIPE_COLOR, rect, initialAngle, finalAngle, 1)
+        # Draw middle yellow stripe arc
+        pygame.draw.arc(surface, ROAD_YELLOW_STRIPE_COLOR, rect, self.initialAngle, self.finalAngle, 1)
 
-# Specialization of CurvedRoad with defined angle
-class TopLeftCurvedRoad(CurvedRoad):
-    # Class for a road that does a curve from north to west (top to left)
-    def __init__(self, width: float, center: Vector2, arcOffset: float) -> None:
-        super().__init__(width, center, arcOffset, math.pi / 4)
+# Curved road for a turn from north to west (top to left)
+def topLeftCurvedRoad(width: float, center: Vector2, arcOffset: float) -> CurvedRoad:
+    return CurvedRoad(width, center, arcOffset, math.pi / 4)
 
-# Specialization of CurvedRoad with defined angle
-class TopRightCurvedRoad(CurvedRoad):
-    # Class for a road that does a curve from north to east (top to right)
-    def __init__(self, width: float, center: Vector2, arcOffset: float) -> None:
-        super().__init__(width, center, arcOffset, 3 * math.pi / 4)
+# Curved road for a turn from north to east (top to right)
+def topRightCurvedRoad(width: float, center: Vector2, arcOffset: float) -> CurvedRoad:
+    return CurvedRoad(width, center, arcOffset, 3 * math.pi / 4)
 
-# Specialization of CurvedRoad with defined angle
-class BottomLeftCurvedRoad(CurvedRoad):
-    # Class for a road that does a curve from south to west (bottom to left)
-    def __init__(self, width: float, center: Vector2, arcOffset: float) -> None:
-        super().__init__(width, center, arcOffset, -math.pi / 4)
+# Curved road for a turn from south to west (bottom to left)
+def bottomLeftCurvedRoad(width: float, center: Vector2, arcOffset: float) -> CurvedRoad:
+    return CurvedRoad(width, center, arcOffset, -math.pi / 4)
 
-# Specialization of CurvedRoad with defined angle
-class BottomRightCurvedRoad(CurvedRoad):
-    # Class for a road that does a curve from south to east (bottom to right)
-    def __init__(self, width: float, center: Vector2, arcOffset: float) -> None:
-        super().__init__(width, center, arcOffset, 5 * math.pi / 4)
+# Curved road for a turn from south to east (bottom to right)
+def bottomRightCurvedRoad(width: float, center: Vector2, arcOffset: float) -> CurvedRoad:
+    return CurvedRoad(width, center, arcOffset, 5 * math.pi / 4)
