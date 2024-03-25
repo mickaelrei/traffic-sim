@@ -1,5 +1,6 @@
 import pygame
 import math
+import utils
 from pygame.math import Vector2
 
 # Color of road outlines
@@ -33,7 +34,7 @@ class StraightRoad(Road):
         # Calculate road angle, direction and normal
         self.direction = (end - start).normalize()
         self.normal = Vector2(-self.direction.y, self.direction.x)
-        self.angle = math.atan2(self.direction.y, self.direction.x)
+        self.angle = utils.angleFromDirection(self.direction)
 
     def draw(self, surface: pygame.Surface, offset: Vector2 = Vector2(0, 0), debug: bool = False) -> None:
         # Check if direction exists (start and end are different points)

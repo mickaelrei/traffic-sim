@@ -2,7 +2,8 @@ from model.car import Car
 from model.driver import Driver
 from model.traffic_sim import TrafficSim
 from model.road import Road, StraightRoad, CurvedRoad, topLeftCurvedRoad, topRightCurvedRoad, bottomLeftCurvedRoad, bottomRightCurvedRoad
-from model.path import Path, PathNode
+from model.path import Path
+import utils
 import pygame
 import sys
 import math
@@ -84,107 +85,110 @@ for j, line in enumerate(tileMap):
 
 # Create hardcoded path for driver
 path = Path([
-    PathNode(Vector2(
+    Vector2(
         3.5 * tileSize - curveArcOffset,
         3.75 * tileSize,
-    ), math.pi),
-    PathNode(Vector2(
+    ),
+    Vector2(
         0.5 * tileSize + curveArcOffset,
         3.75 * tileSize
-    ), math.pi),
-    PathNode(Vector2(
+    ),
+    Vector2(
         -0.25 * tileSize,
         4.5 * tileSize + curveArcOffset
-    ), math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         -0.25 * tileSize,
         6.5 * tileSize - curveArcOffset
-    ), math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         0.5 * tileSize + curveArcOffset,
         7.25 * tileSize
-    ), 0),
-    PathNode(Vector2(
+    ),
+    Vector2(
         4.5 * tileSize - curveArcOffset,
         7.25 * tileSize
-    ), 0),
-    PathNode(Vector2(
+    ),
+    Vector2(
         4.75 * tileSize,
         7.5 * tileSize + curveArcOffset
-    ), math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         4.75 * tileSize,
         11.5 * tileSize - curveArcOffset
-    ), math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         5.5 * tileSize + curveArcOffset,
         12.25 * tileSize,
-    ), 0),
-    PathNode(Vector2(
+    ),
+    Vector2(
         9.5 * tileSize - curveArcOffset,
         12.25 * tileSize,
-    ), 0),
-    PathNode(Vector2(
+    ),
+    Vector2(
         9.75 * tileSize,
         12.5 * tileSize + curveArcOffset,
-    ), math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         9.75 * tileSize,
         14.5 * tileSize - curveArcOffset,
-    ), math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         10.5 * tileSize + curveArcOffset,
         15.25 * tileSize,
-    ), 0),
-    PathNode(Vector2(
+    ),
+    Vector2(
         11.5 * tileSize - curveArcOffset,
         15.25 * tileSize,
-    ), 0),
-    PathNode(Vector2(
+    ),
+    Vector2(
         12.25 * tileSize,
         14.5 * tileSize - curveArcOffset,
-    ), -math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         12.25 * tileSize,
         8.5 * tileSize + curveArcOffset,
-    ), -math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         11.5 * tileSize - curveArcOffset,
         7.75 * tileSize,
-    ), math.pi),
-    PathNode(Vector2(
+    ),
+    Vector2(
         7.5 * tileSize + curveArcOffset,
         7.75 * tileSize,
-    ), math.pi),
-    PathNode(Vector2(
+    ),
+    Vector2(
         7.25 * tileSize,
         7.5 * tileSize - curveArcOffset,
-    ), -math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         7.25 * tileSize,
         0.5 * tileSize + curveArcOffset,
-    ), -math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         6.5 * tileSize - curveArcOffset,
         -0.25 * tileSize,
-    ), math.pi),
-    PathNode(Vector2(
+    ),
+    Vector2(
         4.5 * tileSize + curveArcOffset,
         -0.25 * tileSize,
-    ), math.pi),
-    PathNode(Vector2(
+    ),
+    Vector2(
         3.75 * tileSize,
         0.5 * tileSize + curveArcOffset,
-    ), math.pi / 2),
-    PathNode(Vector2(
+    ),
+    Vector2(
         3.75 * tileSize,
         3.5 * tileSize - curveArcOffset,
-    ), math.pi / 2),
+    ),
 ])
+
+# Make path smoother on curves
+path = utils.smoothPathCurves(path)
 
 # Create car instance positioned at first path node
 car = Car(
-    path.nodes[0].pos.copy(),
+    path.nodes[0].copy(),
     size=20,
     texturePath="img/car.png",
     textureScale=3.0,

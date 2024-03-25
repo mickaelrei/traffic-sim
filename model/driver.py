@@ -19,7 +19,7 @@ class Driver:
         # - Current path trajectory
         # - Traffic lights
 
-        update = False
+        update = True
 
         if not update:
             self.car.update(dt)
@@ -41,13 +41,12 @@ class Driver:
         # Adjust steering based on angle difference from current to next node
         # -------------------------------------------------------------------
         nextNodeIndex = (self.pathNodeIndex + 1) % len(self.path.nodes)
-        currentNode = self.path.nodes[self.pathNodeIndex]
         nextNode = self.path.nodes[nextNodeIndex]
-        dist = self.car.pos.distance_to(nextNode.pos)
-        if dist > 25:
+        dist = self.car.pos.distance_to(nextNode)
+        if dist > 5:
             # Get angle from car to point
-            direc = (nextNode.pos - self.car.pos).normalize()
-            angle = math.atan2(direc.y, direc.x)
+            direc = (nextNode - self.car.pos).normalize()
+            angle = utils.angleFromDirection(direc)
             # Check angle difference
             angleDiff = utils.normalizeAngle(angle - self.car.rotation)
             if angleDiff != 0:
@@ -65,26 +64,5 @@ class Driver:
         # ----------
         self.car.update(dt)
 
-    def desiredSteeringAngle(self) -> float:
-        carDirection = utils.directionVector(self.car.rotation)
-        directionNormal = Vector2(-carDirection.y, carDirection.x)
-        verticalWheelDist = self.car.verticalWheelDist()
-        pivotSideDist = math.tan(-self.car.wheelAngle()) * verticalWheelDist / 2
-        totalDist = self.car.horizontalWheelDist() * utils.sign(pivotSideDist) / 2 + pivotSideDist
-
     def draw(self, surface: pygame.Surface, offset: Vector2=Vector2(0, 0), debug: bool=False) -> None:
         self.car.draw(surface, offset, debug)
-
-        if debug:
-            nextNodeIndex = (self.pathNodeIndex + 1) % len(self.path.nodes)
-            nextNode = self.path.nodes[nextNodeIndex]
-            dist = self.car.pos.distance_to(nextNode.pos)
-            if dist > 5:
-                # Check angle difference
-                angleDiff = nextNode.angle - self.car.rotation
-                # Only update steering if angle is different
-                if angleDiff != 0:
-                    # Steer based on angle difference
-                    ang = self.car.rotation + angleDiff
-                    direc = utils.directionVector(ang)
-                    utils.drawArrow(surface, self.car.pos + offset, self.car.pos + offset + direc * 75, (0, 127, 127))
