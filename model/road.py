@@ -86,6 +86,8 @@ class CurvedRoad(Road):
         )
         # Draw outer arc
         pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, self.initialAngle, self.finalAngle, 1)
+        if debug:
+            pygame.draw.rect(surface, (0, 140, 0), rect, 1)
 
         # Calculate rect center and size for inner arc
         # --------------------------------------------
@@ -98,6 +100,8 @@ class CurvedRoad(Road):
         )
         # Draw inner arc
         pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, self.initialAngle, self.finalAngle, 1)
+        if debug:
+            pygame.draw.rect(surface, (70, 0, 140), rect, 1)
 
         # Calculate rect center and size for middle yellow stripe arc
         # -----------------------------------------------------------

@@ -1,6 +1,7 @@
 import pygame
 import math
 from pygame.math import Vector2
+import utils
 
 # Wheel to car size ratio
 WHEEL_SIZE_RATIO = 0.22
@@ -17,40 +18,21 @@ MAX_VELOCITY = 250
 # How much a car's velocity gets affected by wheel friction to the ground
 WHEEL_GROUND_FRICTION = 10
 
-# Rotate a point around a pivot by a given angle
-# Taken from: https://stackoverflow.com/questions/2259476/rotating-a-point-about-another-point-2d
-# Author: Nils Pipenbrinck, Feb 13, 2010
-def rotatePointAroundPivot(point: Vector2, pivot: Vector2, angle: float) -> Vector2:
-    s = math.sin(angle)
-    c = math.cos(angle)
+# Color for car wheel on debug mode
+DEBUG_WHEEL_COLOR = (255, 0, 0)
 
-    point = Vector2.copy(point)
+# Color for car chassis outline on debug mode
+DEBUG_CHASSIS_OUTLINE_COLOR = (255, 255, 255)
 
-    # Translate point back to origin
-    point -= pivot
+# Color for car front wheels path on debug mode
+DEBUG_FRONT_WHEEL_PATH_COLOR = (0, 255, 0)
 
-    # Rotate point
-    newX = point.x * c - point.y * s
-    newY = point.x * s + point.y * c
+# Color for car back wheels path on debug mode
+DEBUG_BACK_WHEEL_PATH_COLOR = (127, 0, 255)
 
-    # Translate point back
-    return Vector2(newX, newY) + pivot
+DEBUG_DIRECTION_ARROW_COLOR = (0, 0, 255)
 
-# Returns -1 for negative values, +1 for positive values, and zero for x = 0
-def sign(x: float) -> float:
-    if x < 0:
-        return -1
-    elif x > 0:
-        return 1
-    return 0
-
-# Clamps x between a minimum and maximum value
-def clamp(x: float, min: float, max: float) -> float:
-    if x < min:
-        return min
-    if x > max:
-        return max
-    return x
+DEBUG_DIRECTION_NORMAL_ARROW_COLOR = (0, 255, 0)
 
 # TODO: Change this to class Vehicle, and make other inherited classes such as:
 # - Car
@@ -68,7 +50,8 @@ class Car:
         texturePath: str="",
         textureScale: float=1.0,
         textureOffsetAngle: float=0,
-        wheelAxisAspectRatio: float=1
+        wheelAxisAspectRatio: float=1,
+        initialRotation: float=0
     ) -> None:
         # Car position
         self.pos = pos
@@ -98,7 +81,7 @@ class Car:
         self.velocity = 0
 
         # Car rotation/inclination
-        self.rotation = 0
+        self.rotation = utils.normalizeAngle(initialRotation)
 
         # Car texture scale based on [size]
         self.textureScale = textureScale
@@ -142,15 +125,15 @@ class Car:
 
     # Set car steering
     def setSteering(self, steering: float) -> None:
-        self.steering = clamp(steering, -1, 1)
+        self.steering = utils.clamp(steering, -1, 1)
 
     # Set car acceleration (between 0 and 1)
     def setAccelerationAmount(self, accelerationAmount: float) -> None:
-        self.accelerationAmount = clamp(accelerationAmount, 0, 1)    
+        self.accelerationAmount = utils.clamp(accelerationAmount, 0, 1)
 
     # Set car brake amount (between 0 and 1)
     def setBrakeAmount(self, brakeAmount: float) -> None:
-        self.brakeAmount = clamp(brakeAmount, 0, 1)
+        self.brakeAmount = utils.clamp(brakeAmount, 0, 1)
 
     # Distance between left and right wheels
     def horizontalWheelDist(self) -> float:
@@ -159,28 +142,17 @@ class Car:
     # Distance between front and back wheels
     def verticalWheelDist(self) -> float:
         return self.size * self.wheelAxisAspectRatio
-        
-    def direction(self) -> Vector2:
-        # NOTE: Rad 0 is pointing east, but i'm considering rotation zero pointing
-        # north, so offset by pi/2
-        actualRotation = self.rotation + math.pi * 0.5
 
-        # Coordinates
-        x = math.cos(actualRotation)
-        y = math.sin(actualRotation)
+    def maxSteeringAngle(self) -> float:
+        return MAX_STEERING_ANGLE + (MIN_STEERING_ANGLE - MAX_STEERING_ANGLE) * (self.velocity / MAX_VELOCITY)**2
 
-        # Negate because of pygame coordinate system
-        return -Vector2(x, y)
-    
     # Calculates current wheel angle based on steering and velocity
     def wheelAngle(self) -> float:
-        steeringAngle = MAX_STEERING_ANGLE + (MIN_STEERING_ANGLE - MAX_STEERING_ANGLE) * (self.velocity / MAX_VELOCITY)**2
-        return math.pi * 0.5 - self.steering * steeringAngle
+        return math.pi * 0.5 - self.steering * self.maxSteeringAngle()
 
     def update(self, dt: float) -> None:
         # Update velocity
         # ---------------
-
         # Decrease velocity based on wheel friction
         if self.velocity > 0:
             self.velocity = max(0, self.velocity - WHEEL_GROUND_FRICTION * dt)
@@ -188,7 +160,7 @@ class Car:
             self.velocity = min(0, self.velocity + WHEEL_GROUND_FRICTION * dt)
 
         # Increase velocity based on how much acceleration
-        self.velocity = clamp(
+        self.velocity = utils.clamp(
             self.velocity
                 + self.accelerationSpeed * self.accelerationAmount
                 * (-1 if self.reverse else 1) * dt,
@@ -205,42 +177,42 @@ class Car:
         # Check if almost no steering
         if abs(self.steering) < 0.01:
             # Apply forward motion without finding rotation pivot
-            self.pos += self.direction() * self.velocity * dt
+            self.pos += utils.directionVector(self.rotation) * self.velocity * dt
             return
 
         # Find rotation pivot
-        carDirection = self.direction()
+        carDirection = utils.directionVector(self.rotation)
         directionNormal = Vector2(-carDirection.y, carDirection.x)
         verticalWheelDist = self.verticalWheelDist()
-        pivotSideDist = math.tan(self.wheelAngle()) * verticalWheelDist / 2
-        totalDist = self.horizontalWheelDist() * sign(pivotSideDist) / 2 + pivotSideDist
+        pivotSideDist = math.tan(-self.wheelAngle()) * verticalWheelDist / 2
+        totalDist = self.horizontalWheelDist() * utils.sign(pivotSideDist) / 2 + pivotSideDist
         pivotCenter = self.pos \
                       - carDirection * verticalWheelDist / 2 \
-                      + directionNormal * totalDist
+                      - directionNormal * totalDist
 
         # Calculate rotation angle
-        rotationAngle = self.velocity * dt / totalDist
+        rotationAngle = -self.velocity * dt / totalDist
 
         # Rotate current position around pivot
-        self.pos = rotatePointAroundPivot(self.pos, pivotCenter, rotationAngle)
-        self.rotation += rotationAngle
+        self.pos = utils.rotatePointAroundPivot(self.pos, pivotCenter, rotationAngle)
+        self.rotation = utils.normalizeAngle(self.rotation + rotationAngle)
 
     def draw(self, surface: pygame.Surface, offset: Vector2=Vector2(0, 0), debug: bool=False) -> None:
         # Get wheel distances
-        halfX = self.horizontalWheelDist() / 2
-        halfY = self.verticalWheelDist() / 2
+        halfX = self.verticalWheelDist() / 2
+        halfY = self.horizontalWheelDist() / 2
         wheelSize = self.size * WHEEL_SIZE_RATIO
 
         # Wheel positions
-        frontLeft = self.pos + rotatePointAroundPivot(Vector2(-halfX, -halfY), Vector2(0, 0), self.rotation)
-        frontRight = self.pos + rotatePointAroundPivot(Vector2(halfX, -halfY), Vector2(0, 0), self.rotation)
-        backLeft = self.pos + rotatePointAroundPivot(Vector2(-halfX, halfY), Vector2(0, 0), self.rotation)
-        backRight = self.pos + rotatePointAroundPivot(Vector2(halfX, halfY), Vector2(0, 0), self.rotation)
+        frontLeft = self.pos + utils.rotatePointAroundPivot(Vector2(halfX, -halfY), Vector2(0, 0), self.rotation)
+        frontRight = self.pos + utils.rotatePointAroundPivot(Vector2(halfX, halfY), Vector2(0, 0), self.rotation)
+        backLeft = self.pos + utils.rotatePointAroundPivot(Vector2(-halfX, -halfY), Vector2(0, 0), self.rotation)
+        backRight = self.pos + utils.rotatePointAroundPivot(Vector2(-halfX, halfY), Vector2(0, 0), self.rotation)
 
         # Check if has wheel texture
         if self.wheelTexture != None:
             # Rotate
-            rotated = pygame.transform.rotate(self.wheelTexture, math.degrees(-self.rotation - self.steering * MAX_STEERING_ANGLE))
+            rotated = pygame.transform.rotate(self.wheelTexture, math.degrees(-self.rotation + math.pi * 0.5 - self.steering * MAX_STEERING_ANGLE))
 
             # Left wheel
             # ----------
@@ -263,29 +235,38 @@ class Car:
         if debug:
             # Car wheels
             # ----------
-            pygame.draw.circle(surface, (255, 0, 0), frontLeft + offset, wheelSize)
-            pygame.draw.circle(surface, (255, 0, 0), frontRight + offset, wheelSize)
-            pygame.draw.circle(surface, (255, 0, 0), backLeft + offset, wheelSize)
-            pygame.draw.circle(surface, (255, 0, 0), backRight + offset, wheelSize)
+            pygame.draw.circle(surface, DEBUG_WHEEL_COLOR, frontLeft + offset, wheelSize)
+            pygame.draw.circle(surface, DEBUG_WHEEL_COLOR, frontRight + offset, wheelSize)
+            pygame.draw.circle(surface, DEBUG_WHEEL_COLOR, backLeft + offset, wheelSize)
+            pygame.draw.circle(surface, DEBUG_WHEEL_COLOR, backRight + offset, wheelSize)
 
             # Car chassis outline
             # -------------------
-            pygame.draw.line(surface, (255, 255, 255), backLeft + offset, frontLeft + offset)
-            pygame.draw.line(surface, (255, 255, 255), frontLeft + offset, frontRight + offset)
-            pygame.draw.line(surface, (255, 255, 255), frontRight + offset, backRight + offset)
-            pygame.draw.line(surface, (255, 255, 255), backRight + offset, backLeft + offset)
+            pygame.draw.line(surface, DEBUG_CHASSIS_OUTLINE_COLOR, backLeft + offset, frontLeft + offset)
+            pygame.draw.line(surface, DEBUG_CHASSIS_OUTLINE_COLOR, frontLeft + offset, frontRight + offset)
+            pygame.draw.line(surface, DEBUG_CHASSIS_OUTLINE_COLOR, frontRight + offset, backRight + offset)
+            pygame.draw.line(surface, DEBUG_CHASSIS_OUTLINE_COLOR, backRight + offset, backLeft + offset)
+
+            # Arrow pointing in car direction
+            direc = utils.directionVector(self.rotation)
+            utils.drawArrow(surface, self.pos + offset, self.pos + offset + direc * 75, DEBUG_DIRECTION_ARROW_COLOR)
 
             # Wheel path trajectory
             # ---------------------
-            carDirection = self.direction()
+            if abs(self.steering) < 0.01: return
+
+            carDirection = utils.directionVector(self.rotation)
             directionNormal = Vector2(-carDirection.y, carDirection.x)
             verticalWheelDist = self.verticalWheelDist()
             pivotSideDist = math.tan(self.wheelAngle()) * verticalWheelDist / 2
-            totalDist = self.horizontalWheelDist() * sign(pivotSideDist) / 2 + pivotSideDist
+            totalDist = self.horizontalWheelDist() * utils.sign(pivotSideDist) / 2 + pivotSideDist
             pivotCenter = self.pos \
                         - carDirection * verticalWheelDist / 2 \
                         + directionNormal * totalDist
-            pygame.draw.circle(surface, (127, 0, 255), pivotCenter + offset, (frontLeft - pivotCenter).length(), 1)
-            pygame.draw.circle(surface, (127, 0, 255), pivotCenter + offset, (frontRight - pivotCenter).length(), 1)
-            pygame.draw.circle(surface, (0, 255, 0), pivotCenter + offset, (backLeft - pivotCenter).length(), 1)
-            pygame.draw.circle(surface, (0, 255, 0), pivotCenter + offset, (backRight - pivotCenter).length(), 1)
+            pygame.draw.circle(surface, DEBUG_FRONT_WHEEL_PATH_COLOR, pivotCenter + offset, (frontLeft - pivotCenter).length(), 1)
+            pygame.draw.circle(surface, DEBUG_FRONT_WHEEL_PATH_COLOR, pivotCenter + offset, (frontRight - pivotCenter).length(), 1)
+            pygame.draw.circle(surface, DEBUG_BACK_WHEEL_PATH_COLOR, pivotCenter + offset, (backLeft - pivotCenter).length(), 1)
+            pygame.draw.circle(surface, DEBUG_BACK_WHEEL_PATH_COLOR, pivotCenter + offset, (backRight - pivotCenter).length(), 1)
+
+            # Arrow pointing to pivot center
+            utils.drawArrow(surface, self.pos + offset, pivotCenter + offset, DEBUG_DIRECTION_NORMAL_ARROW_COLOR)
