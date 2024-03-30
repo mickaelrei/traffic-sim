@@ -184,6 +184,109 @@ path = Path([
 # Make path smoother on curves
 path = utils.smoothPathCurves(path)
 
+# Other way path
+path1 = Path([
+    Vector2(
+        3.5 * tileSize - curveArcOffset,
+        4.25 * tileSize,
+    ),
+    Vector2(
+        0.5 * tileSize + curveArcOffset,
+        4.25 * tileSize
+    ),
+    Vector2(
+        0.25 * tileSize,
+        4.5 * tileSize + curveArcOffset
+    ),
+    Vector2(
+        0.25 * tileSize,
+        6.5 * tileSize - curveArcOffset
+    ),
+    Vector2(
+        0.5 * tileSize + curveArcOffset,
+        6.75 * tileSize
+    ),
+    Vector2(
+        4.5 * tileSize - curveArcOffset,
+        6.75 * tileSize
+    ),
+    Vector2(
+        5.25 * tileSize,
+        7.5 * tileSize + curveArcOffset
+    ),
+    Vector2(
+        5.25 * tileSize,
+        11.5 * tileSize - curveArcOffset
+    ),
+    Vector2(
+        5.5 * tileSize + curveArcOffset,
+        11.75 * tileSize,
+    ),
+    Vector2(
+        9.5 * tileSize - curveArcOffset,
+        11.75 * tileSize,
+    ),
+    Vector2(
+        10.25 * tileSize,
+        12.5 * tileSize + curveArcOffset,
+    ),
+    Vector2(
+        10.25 * tileSize,
+        14.5 * tileSize - curveArcOffset,
+    ),
+    Vector2(
+        10.5 * tileSize + curveArcOffset,
+        14.75 * tileSize,
+    ),
+    Vector2(
+        11.5 * tileSize - curveArcOffset,
+        14.75 * tileSize,
+    ),
+    Vector2(
+        11.75 * tileSize,
+        14.5 * tileSize - curveArcOffset,
+    ),
+    Vector2(
+        11.75 * tileSize,
+        8.5 * tileSize + curveArcOffset,
+    ),
+    Vector2(
+        11.5 * tileSize - curveArcOffset,
+        8.25 * tileSize,
+    ),
+    Vector2(
+        7.5 * tileSize + curveArcOffset,
+        8.25 * tileSize,
+    ),
+    Vector2(
+        6.75 * tileSize,
+        7.5 * tileSize - curveArcOffset,
+    ),
+    Vector2(
+        6.75 * tileSize,
+        0.5 * tileSize + curveArcOffset,
+    ),
+    Vector2(
+        6.5 * tileSize - curveArcOffset,
+        0.25 * tileSize,
+    ),
+    Vector2(
+        4.5 * tileSize + curveArcOffset,
+        0.25 * tileSize,
+    ),
+    Vector2(
+        4.25 * tileSize,
+        0.5 * tileSize + curveArcOffset,
+    ),
+    Vector2(
+        4.25 * tileSize,
+        3.5 * tileSize - curveArcOffset,
+    ),
+])
+
+path1 = utils.smoothPathCurves(path1)
+path1.nodes.reverse()
+
 # Create car instance positioned at first path node
 car = Car(
     path.nodes[0].copy(),
@@ -201,11 +304,29 @@ driver = Driver(
     path=path
 )
 
+# Car for second path
+car1 = Car(
+    path1.nodes[0].copy(),
+    size=22,
+    texturePath="img/car.png",
+    textureScale=3.0,
+    textureOffsetAngle=180,
+    wheelAxisAspectRatio=1.8,
+    initialRotation=0
+)
+
+# Create driver instance
+driver1 = Driver(
+    car=car1,
+    path=path1
+)
+
 # Create main traffic simulation instance
 trafficSim = TrafficSim()
 
 # Add driver to list
 trafficSim.addDriver(driver)
+trafficSim.addDriver(driver1)
 
 # Steering wheel
 STEERING_WHEEL_SIZE = WIDTH * 0.3
@@ -278,6 +399,8 @@ while True:
 
     # Draw path
     path.draw(window, carOffset, debug)
+
+    path1.draw(window, carOffset, debug)
 
     # Manually update car steering based on mouse horizontal position (for now)
     car.setSteering(mouseX / WIDTH * 2 - 1)
