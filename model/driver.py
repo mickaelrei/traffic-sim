@@ -42,16 +42,39 @@ class Driver:
         # -------------------------------------------------------------------
         nextNodeIndex = (self.pathNodeIndex + 1) % len(self.path.nodes)
         nextNode = self.path.nodes[nextNodeIndex]
-        dist = self.car.pos.distance_to(nextNode)
-        if dist > 5:
+
+        # Check if too far away from next node
+        if self.car.pos.distance_to(nextNode) > self.car.size:
             # Get angle from car to point
             direc = (nextNode - self.car.pos).normalize()
             angle = utils.angleFromDirection(direc)
             # Check angle difference
-            angleDiff = utils.normalizeAngle(angle - self.car.rotation)
+            angleDiff = angle - self.car.rotation
+
+            # Make the angle diff be in the [-180, 180] range, because more
+            # than that means a full return, which very probably is not the case
+            while angleDiff < -math.pi:
+                angleDiff += 2 * math.pi
+            while angleDiff > math.pi:
+                angleDiff -= 2 * math.pi
+
+            # Check if actually need to steer (angle is not zero)
             if angleDiff != 0:
-                # Steer based on angle difference
+                # Steer based on angle difference and car max steer
                 steerAmount = angleDiff / self.car.maxSteeringAngle()
+
+                # Check if can't steer enough
+                if abs(steerAmount) > 1:
+                    # NOTE: If the car can't steer enough to align with the
+                    # next node, it will probably start spinning and won't stop.
+                    # TODO: Think of some way of adjusting the car so it can
+                    # align with the next node. Possible solutions:
+                    # - drive in reverse to realign
+                    # - brake so the car can steer more (simulating braking in curves)
+                    # - auto detonation :)
+                    print(f'NEED TO STEER MORE THAN MAX: {math.degrees(angleDiff)}')
+
+                # Steer accordingly
                 if angleDiff < math.pi:
                     self.car.setSteering(steerAmount)
                 else:

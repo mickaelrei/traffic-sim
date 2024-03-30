@@ -76,6 +76,8 @@ class CurvedRoad(Road):
         self.finalAngle = self.initialAngle + math.pi / 2
 
     def draw(self, surface: pygame.Surface, offset: Vector2 = Vector2(0, 0), debug: bool = False) -> None:
+        if debug:
+            pygame.draw.circle(surface, (255, 0, 0), self.center + offset, 5, 1)
         # Calculate rect center and size for outer arc
         # --------------------------------------------
         rectSize = 2 * (self.width + self.arcOffset)

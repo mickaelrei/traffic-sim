@@ -43,7 +43,7 @@ tileMap = [
 
 # Create roads from tilemap
 tileSize = 110
-curveArcOffset = 35
+curveArcOffset = 45
 roads: list[Road] = []
 for j, line in enumerate(tileMap):
     for i, code in enumerate(line):
@@ -80,8 +80,6 @@ for j, line in enumerate(tileMap):
             if i < len(tileMap[j]) - 1 and tileMap[j][i+1] in ('tr', 'tl', 'br', 'bl'):
                 rightDiff = -curveArcOffset
             roads.append(StraightRoad(tileSize, center - Vector2(tileSize/2 + leftDiff, 0), center + Vector2(tileSize/2 + rightDiff, 0)))
-
-# TODO: Add intermediate path nodes between curves for smoother movement
 
 # Create hardcoded path for driver
 path = Path([
@@ -189,7 +187,7 @@ path = utils.smoothPathCurves(path)
 # Create car instance positioned at first path node
 car = Car(
     path.nodes[0].copy(),
-    size=20,
+    size=22,
     texturePath="img/car.png",
     textureScale=3.0,
     textureOffsetAngle=180,
@@ -220,6 +218,7 @@ steeringWheel = pygame.transform.scale(
 debug = False
 focused = False
 update = True
+drawSteeringWheel = False
 
 # Used to calculate dt
 getTicksLastFrame = pygame.time.get_ticks()
@@ -254,6 +253,8 @@ while True:
                 focused = not focused
             elif event.key == pygame.K_q:
                 update = not update
+            elif event.key == pygame.K_r:
+                drawSteeringWheel = not drawSteeringWheel
         # Check for key releases
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
@@ -273,7 +274,7 @@ while True:
     # Draw the roads
     for road in roads:
         # NOTE: Currently disabling road debug because it is distracting
-        road.draw(window, carOffset, False)
+        road.draw(window, carOffset, debug)
 
     # Draw path
     path.draw(window, carOffset, debug)
@@ -287,14 +288,15 @@ while True:
     trafficSim.draw(window, carOffset, debug)
 
     # Draw steering wheel
-    # rotatedSteeringWheel = pygame.transform.rotate(
-    #     steeringWheel,
-    #     -car.steering * 180
-    # )
-    # rect = rotatedSteeringWheel.get_rect(
-    #     center=(WIDTH * .5, HEIGHT - STEERING_WHEEL_SIZE / 2 - 25)
-    # )
-    # window.blit(rotatedSteeringWheel, rect)
+    if drawSteeringWheel:
+        rotatedSteeringWheel = pygame.transform.rotate(
+            steeringWheel,
+            -car.steering * 180
+        )
+        rect = rotatedSteeringWheel.get_rect(
+            center=(WIDTH * .5, HEIGHT - STEERING_WHEEL_SIZE / 2 - 25)
+        )
+        window.blit(rotatedSteeringWheel, rect)
 
     # Update window
     pygame.display.update()

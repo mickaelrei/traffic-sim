@@ -30,9 +30,14 @@ DEBUG_FRONT_WHEEL_PATH_COLOR = (0, 255, 0)
 # Color for car back wheels path on debug mode
 DEBUG_BACK_WHEEL_PATH_COLOR = (127, 0, 255)
 
+# Color for car direction arrow
 DEBUG_DIRECTION_ARROW_COLOR = (0, 0, 255)
 
+# Color for arrow from car position to car rotation pivot center
 DEBUG_DIRECTION_NORMAL_ARROW_COLOR = (0, 255, 0)
+
+# How fast the car steers
+STEERING_LERP_SPEED = 10
 
 # TODO: Change this to class Vehicle, and make other inherited classes such as:
 # - Car
@@ -76,6 +81,9 @@ class Car:
 
         # Car steering amount, between -1 and 1
         self.steering = 0
+
+        # Used for lerping car steering
+        self.targetSteering = self.steering
 
         # Current car velocity
         self.velocity = 0
@@ -125,7 +133,8 @@ class Car:
 
     # Set car steering
     def setSteering(self, steering: float) -> None:
-        self.steering = utils.clamp(steering, -1, 1)
+        self.targetSteering = utils.clamp(steering, -1, 1)
+        # self.steering = utils.clamp(steering, -1, 1)
 
     # Set car acceleration (between 0 and 1)
     def setAccelerationAmount(self, accelerationAmount: float) -> None:
@@ -151,6 +160,9 @@ class Car:
         return math.pi * 0.5 - self.steering * self.maxSteeringAngle()
 
     def update(self, dt: float) -> None:
+        # Lerp steering towards targetSteering
+        self.steering = utils.lerp(self.steering, self.targetSteering, STEERING_LERP_SPEED * dt)
+
         # Update velocity
         # ---------------
         # Decrease velocity based on wheel friction

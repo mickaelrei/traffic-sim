@@ -7,8 +7,6 @@ DEFAULT_ARROW_COLOR = (255, 0, 255)
 
 DEFAULT_TEXT_COLOR = (255, 255, 255)
 
-PATH_CURVE_INTERMEDIATE_NODES_COUNT = 3
-
 # Draws an arrow, given start and end points
 def drawArrow(surface: pygame.Surface, start: Vector2, end: Vector2, color: tuple=None) -> None:
     if end == start: return
@@ -65,6 +63,10 @@ def normalizeAngle(angle: float) -> float:
 
     return angle
 
+# Performs linear interpolation from a to b with alpha t
+def lerp(a: float, b: float, t: float) -> float:
+    return a + (b - a) * t
+
 # Rotate a point around a pivot by a given angle
 # Taken from: https://stackoverflow.com/questions/2259476/rotating-a-point-about-another-point-2d
 # Author: Nils Pipenbrinck, Feb 13, 2010
@@ -115,19 +117,25 @@ def smoothPathCurves(path: Path) -> Path:
     # Remove node duplicates
     for i in range(len(originalNodes) - 2, -1, -1):
         if (originalNodes[i] - originalNodes[i + 1]).length() == 0:
-            originalNodes.pop
+            print(f'Removed node duplicate at index {i + 1}')
+            originalNodes.pop(i + 1)
 
     # Save last node for angle check
     lastNode: Vector2 | None = None
 
-    i = -1
-    while len(originalNodes) > 1:
+    while len(originalNodes) > 0:
         # Get current and next node
         node = originalNodes.pop(0)
-        nextNode = originalNodes[0]
+
+        # Check if this is the last original node
+        if len(originalNodes) == 0:
+            nextNode = nodes[0]
+        else:
+            nextNode = originalNodes[0]
 
         # Angle between current and next nodes
-        angle0 = angleFromDirection((nextNode - node).normalize())
+        directionToNext = (nextNode - node).normalize()
+        angle0 = angleFromDirection(directionToNext)
 
         # Angle between last and current nodes
         if lastNode is None:
@@ -140,16 +148,40 @@ def smoothPathCurves(path: Path) -> Path:
         intermediateNodes: list[Vector2] = []
 
         # Check angle difference
-        angleDiff = angle0 - angle1
+        angleDiff = normalizeAngle(angle0) - normalizeAngle(angle1)
         if abs(angleDiff) > math.pi * 0.2:
-            # TODO: This is wrong, doesn't work for some curves. Fix it
-            curveAngle = angle0 + math.pi / 2
-            print(f'Road angle at orig node {i} = {math.degrees(curveAngle):.2f}')
+            # Normalize angle diff between [-pi/4, +pi/4] range
+            if angleDiff > math.pi / 4:
+                angleDiff -= 2 * math.pi
+            elif angleDiff < -math.pi / 4:
+                angleDiff += 2 * math.pi
+
+            # Check if to left or to right
+            if angleDiff < 0:
+                # To left
+                normalToNext = Vector2(-directionToNext.y, directionToNext.x)
+            else:
+                # To right
+                normalToNext = Vector2(directionToNext.y, -directionToNext.x)
+
+            # Distance to next node
+            distance = (node - nextNode).length()
+
+            # Num of intermediate nodes based on distance to next node
+            numIntermediateNodes = int(distance / 12)
+
             # Add nodes in between two nodes
-            for j in range(PATH_CURVE_INTERMEDIATE_NODES_COUNT):
-                # TODO: Calculate how much the point moves in the direction of the curve (cos() and sin() of angle for j)
-                point = node + (nextNode - node) * ((j + 1) / (PATH_CURVE_INTERMEDIATE_NODES_COUNT + 1))
-                intermediateNodes.append(point)# - directionVector(roadAngle) * distance * 0.125)
+            step = 1 / (numIntermediateNodes + 1)
+            for j in range(numIntermediateNodes):
+                # Calculate how much the point moves in the direction of the curve
+                t = (j + 1) * step
+                point = node + (nextNode - node) * t
+                normalDisplacement = 0.8 * (-t**2 + t)
+
+                # Add new intermediate point
+                intermediateNodes.append(point + normalToNext * distance * normalDisplacement)
+
+            # Set last node to be the last intermediate node
             lastNode = intermediateNodes[len(intermediateNodes) - 1]
         else:
             lastNode = node
@@ -160,11 +192,6 @@ def smoothPathCurves(path: Path) -> Path:
         # Add all intermediate nodes after the current
         for intermediateNode in intermediateNodes:
             nodes.append(intermediateNode)
-
-        i += 1
-
-    # Add last node
-    nodes.append(originalNodes.pop())
 
     # Return new path with updated nodes
     return Path(nodes)

@@ -10,5 +10,3 @@ class Path:
     def draw(self, surface: pygame.Surface, offset: Vector2 = Vector2(0, 0), debug: bool = False) -> None:
         for i, pos in enumerate(self.nodes):
             pygame.draw.circle(surface, (255, 127, 0), pos + offset, 5)
-            if debug:
-                utils.drawText(surface, f'Node {i}', pos + offset, anchorY=1)
