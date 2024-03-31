@@ -88,4 +88,5 @@ class Driver:
         self.car.update(dt)
 
     def draw(self, surface: pygame.Surface, offset: Vector2=Vector2(0, 0), debug: bool=False) -> None:
+        self.path.draw(surface, offset, debug)
         self.car.draw(surface, offset, debug)

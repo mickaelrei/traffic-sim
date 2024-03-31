@@ -42,7 +42,8 @@ def drawText(surface: pygame.Surface, text: str, pos: Vector2, fontSize: int=18,
     font = pygame.font.SysFont(fontType, round(fontSize), bold, italic)
     textSurface = font.render(str(text), antiAlias, textColor, bgColor)
     textRect = textSurface.get_rect()
-    surface.blit(textSurface, (pos.x + textRect.width * anchorX, pos.y + textRect.height * anchorY))
+    textRect.center = pos + Vector2(textRect.width * anchorX, textRect.height * anchorY)
+    surface.blit(textSurface, textRect)
 
 # Returns a direction vector from a given angle
 # NOTE: angle is interpreted as rad

@@ -328,18 +328,18 @@ trafficSim = TrafficSim()
 trafficSim.addDriver(driver)
 trafficSim.addDriver(driver1)
 
-# Steering wheel
-STEERING_WHEEL_SIZE = WIDTH * 0.3
-steeringWheel = pygame.image.load("img/steering_wheel.png")
-steeringWheel = pygame.transform.scale(
-    steeringWheel, (STEERING_WHEEL_SIZE, STEERING_WHEEL_SIZE)
-)
-
 # States
 debug = False
-focused = False
+focusedIndex = 0
+isFocused = False
 update = True
-drawSteeringWheel = False
+mouseDown = False
+
+# Camera movement
+cameraOffset = Vector2(0, 0)
+cameraRotation = 0
+cameraRotateSpeed = 1
+cameraRotateDirection = 0
 
 # Used to calculate dt
 getTicksLastFrame = pygame.time.get_ticks()
@@ -362,45 +362,75 @@ while True:
             sys.exit()
         # Check for key presses
         elif event.type == pygame.KEYDOWN:
+            # Car movement (only for testing, barely used)
             if event.key == pygame.K_w:
                 car.setAccelerationAmount(1)
             elif event.key == pygame.K_s:
                 car.setBrakeAmount(1)
-            elif event.key == pygame.K_e:
+            # Car reverse gear toggle
+            elif event.key == pygame.K_r:
                 car.reverse = not car.reverse
+            # Debug toggle
             elif event.key == pygame.K_f:
                 debug = not debug
-            elif event.key == pygame.K_g:
-                focused = not focused
-            elif event.key == pygame.K_q:
+            # Toggle updating
+            elif event.key == pygame.K_v:
                 update = not update
-            elif event.key == pygame.K_r:
-                drawSteeringWheel = not drawSteeringWheel
+            # Car focus change
+            elif event.key == pygame.K_z and isFocused:
+                focusedIndex = (focusedIndex - 1) % len(trafficSim.drivers)
+            elif event.key == pygame.K_c and isFocused:
+                focusedIndex = (focusedIndex + 1) % len(trafficSim.drivers)
+            elif event.key == pygame.K_x:
+                if isFocused:
+                    # Make camera stay at focused car position and rotation
+                    focusedCar = trafficSim.drivers[focusedIndex].car
+                    cameraOffset = -focusedCar.pos + Vector2(WIDTH, HEIGHT)
+                    cameraRotation = focusedCar.rotation + math.pi / 2
+                isFocused = not isFocused
+            # Camera rotation
+            elif event.key == pygame.K_q:
+                cameraRotateDirection += -1
+            elif event.key == pygame.K_e:
+                cameraRotateDirection += 1
         # Check for key releases
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
                 car.setAccelerationAmount(0)
             elif event.key == pygame.K_s:
                 car.setBrakeAmount(0)
+            # Camera rotation
+            elif event.key == pygame.K_q:
+                cameraRotateDirection -= -1
+            elif event.key == pygame.K_e:
+                cameraRotateDirection -= 1
+        # Check for mouse motion
+        elif event.type == pygame.MOUSEMOTION and mouseDown and not isFocused:
+            cameraOffset += Vector2(event.rel).rotate(math.degrees(cameraRotation))
+
+    # Get mouse buttons state
+    left, middle, right = pygame.mouse.get_pressed(3)
+    mouseDown = left
+
+    # Update camera rotation (only if not focused)
+    if not isFocused:
+        cameraRotation += cameraRotateDirection * cameraRotateSpeed * dt
 
     # Clear window
     window.fill(BLACK)
 
+    # Traffic drawing surface
+    trafficSurface = pygame.Surface((WIDTH * 2, HEIGHT * 2))
+
     # Get focused car offset
-    if focused:
-        carOffset = -car.pos + Vector2(WIDTH / 2, HEIGHT / 2)
+    if isFocused:
+        worldOffset = -trafficSim.drivers[focusedIndex].car.pos + Vector2(WIDTH, HEIGHT)
     else:
-        carOffset = Vector2(0, 0)
+        worldOffset = cameraOffset
 
     # Draw the roads
     for road in roads:
-        # NOTE: Currently disabling road debug because it is distracting
-        road.draw(window, carOffset, debug)
-
-    # Draw path
-    path.draw(window, carOffset, debug)
-
-    path1.draw(window, carOffset, debug)
+        road.draw(trafficSurface, worldOffset, debug)
 
     # Manually update car steering based on mouse horizontal position (for now)
     car.setSteering(mouseX / WIDTH * 2 - 1)
@@ -408,19 +438,28 @@ while True:
     # Update and draw traffic
     if update:
         trafficSim.update(dt)
-    trafficSim.draw(window, carOffset, debug)
+    trafficSim.draw(trafficSurface, worldOffset, debug)
 
-    # Draw steering wheel
-    if drawSteeringWheel:
-        rotatedSteeringWheel = pygame.transform.rotate(
-            steeringWheel,
-            -car.steering * 180
-        )
-        rect = rotatedSteeringWheel.get_rect(
-            center=(WIDTH * .5, HEIGHT - STEERING_WHEEL_SIZE / 2 - 25)
-        )
-        window.blit(rotatedSteeringWheel, rect)
+    # Check if any car is focused
+    if isFocused:
+        focusedCar = trafficSim.drivers[focusedIndex].car
+
+        # Get rotated traffic surface based on focused car
+        rotatedTraffic = pygame.transform.rotate(trafficSurface, math.degrees(focusedCar.rotation + math.pi / 2))
+        surfSize = trafficSurface.get_size()
+        trafficRect = rotatedTraffic.get_rect(center = trafficSurface.get_rect(center = (WIDTH/2, HEIGHT/2)).center)
+    else:
+        # Get rotated traffic surface based on current camera rotation
+        rotatedTraffic = pygame.transform.rotate(trafficSurface, math.degrees(cameraRotation))
+        surfSize = trafficSurface.get_size()
+        trafficRect = rotatedTraffic.get_rect(center = trafficSurface.get_rect(center = (WIDTH/2, HEIGHT/2)).center)
+
+    # Draw rotated traffic surface on window
+    window.blit(rotatedTraffic, trafficRect)
+
+    # Draw text indicating which car is focused
+    utils.drawText(window, f'Focused car: {focusedIndex if isFocused else "None"}', Vector2(5, HEIGHT - 5), anchorX=0.5, anchorY=-0.5, fontSize=25)
 
     # Update window
     pygame.display.update()
-    dt = clock.tick(FPS)
+    clock.tick(FPS)

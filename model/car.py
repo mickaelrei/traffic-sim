@@ -228,12 +228,12 @@ class Car:
 
             # Left wheel
             # ----------
-            rect = rotated.get_rect(center = self.texture.get_rect(center = frontLeft + offset).center)
+            rect = rotated.get_rect(center = self.wheelTexture.get_rect(center = frontLeft + offset).center)
             surface.blit(rotated, rect)
 
             # Right wheel
             # ----------
-            rect = rotated.get_rect(center = self.texture.get_rect(center = frontRight + offset).center)
+            rect = rotated.get_rect(center = self.wheelTexture.get_rect(center = frontRight + offset).center)
             surface.blit(rotated, rect)
 
         # Check if has body texture
