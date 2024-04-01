@@ -159,6 +159,26 @@ class Car:
     def wheelAngle(self) -> float:
         return math.pi * 0.5 - self.steering * self.maxSteeringAngle()
 
+    def frontLeftWheelPos(self) -> Vector2:
+        halfX = self.verticalWheelDist() / 2
+        halfY = self.horizontalWheelDist() / 2
+        return self.pos + utils.rotatePointAroundPivot(Vector2(halfX, -halfY), Vector2(0, 0), self.rotation)
+    
+    def frontRightWheelPos(self) -> Vector2:
+        halfX = self.verticalWheelDist() / 2
+        halfY = self.horizontalWheelDist() / 2
+        return self.pos + utils.rotatePointAroundPivot(Vector2(halfX, halfY), Vector2(0, 0), self.rotation)
+    
+    def backLeftWheelPos(self) -> Vector2:
+        halfX = self.verticalWheelDist() / 2
+        halfY = self.horizontalWheelDist() / 2
+        return self.pos + utils.rotatePointAroundPivot(Vector2(-halfX, -halfY), Vector2(0, 0), self.rotation)
+    
+    def backRightWheelPos(self) -> Vector2:
+        halfX = self.verticalWheelDist() / 2
+        halfY = self.horizontalWheelDist() / 2
+        return self.pos + utils.rotatePointAroundPivot(Vector2(-halfX, halfY), Vector2(0, 0), self.rotation)
+
     def update(self, dt: float) -> None:
         # Lerp steering towards targetSteering
         self.steering = utils.lerp(self.steering, self.targetSteering, STEERING_LERP_SPEED * dt)
@@ -216,10 +236,10 @@ class Car:
         wheelSize = self.size * WHEEL_SIZE_RATIO
 
         # Wheel positions
-        frontLeft = self.pos + utils.rotatePointAroundPivot(Vector2(halfX, -halfY), Vector2(0, 0), self.rotation)
-        frontRight = self.pos + utils.rotatePointAroundPivot(Vector2(halfX, halfY), Vector2(0, 0), self.rotation)
-        backLeft = self.pos + utils.rotatePointAroundPivot(Vector2(-halfX, -halfY), Vector2(0, 0), self.rotation)
-        backRight = self.pos + utils.rotatePointAroundPivot(Vector2(-halfX, halfY), Vector2(0, 0), self.rotation)
+        frontLeft = self.frontLeftWheelPos()
+        frontRight = self.frontRightWheelPos()
+        backLeft = self.backLeftWheelPos()
+        backRight = self.backRightWheelPos()
 
         # Check if has wheel texture
         if self.wheelTexture != None:

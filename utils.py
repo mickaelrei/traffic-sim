@@ -205,3 +205,40 @@ def createPath(startPos: Vector2, endPos: Vector2) -> Path:
 
     nodes: list[Vector2] = []
     return Path(nodes)
+
+# Calculates intersection between two line segments.
+# 
+# First segment is defined as:
+# - Start = [p1]
+# - End   = [p2]
+# 
+# Second segment is defined as:
+# - Start = [p3]
+# - End   = [p4]
+# 
+# Returns the point of intersection, or None if no intersection
+# 
+# Reference:
+# https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+def lineLineIntersection(p1: Vector2, p2: Vector2, p3: Vector2, p4: Vector2) -> Vector2 | None:
+    t0 = (p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)
+    t1 = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x)
+    if t1 == 0: return None
+    t = t0 / t1
+
+    u0 = (p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)
+    u1 = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x)
+    if u1 == 0: return None
+    u = -u0 / u1
+
+    # Both t and u need to be in [0, 1] range
+    if not (t >= 0 and t <= 1 and u >= 0 and u <= 1):
+        return None
+    
+    # Check if intersection point lies in line 1 or in line 2
+    if t >= 0 and t <= 1:
+        # Point is between p1 and p2
+        return p1 + (p2 - p1) * t
+    else:
+        # Point is between p3 and p4
+        return p3 + (p4 - p3) * u

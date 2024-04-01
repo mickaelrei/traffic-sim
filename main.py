@@ -181,6 +181,7 @@ path = Path([
     ),
 ])
 
+
 # Make path smoother on curves
 path = utils.smoothPathCurves(path)
 
@@ -298,10 +299,27 @@ car = Car(
     initialRotation=math.pi
 )
 
+car2 = Car(
+    path.nodes[1].copy(),
+    size=22,
+    texturePath="img/car.png",
+    textureScale=3.0,
+    textureOffsetAngle=180,
+    wheelAxisAspectRatio=1.8,
+    initialRotation=math.pi
+)
+
 # Create driver instance
 driver = Driver(
     car=car,
-    path=path
+    path=path,
+    desiredVelocity=110,
+)
+
+driver2 = Driver(
+    car=car2,
+    path=path,
+    initialPathNodeIndex=1
 )
 
 # Car for second path
@@ -327,6 +345,7 @@ trafficSim = TrafficSim()
 # Add driver to list
 trafficSim.addDriver(driver)
 trafficSim.addDriver(driver1)
+trafficSim.addDriver(driver2)
 
 # States
 debug = False
@@ -334,6 +353,7 @@ focusedIndex = 0
 isFocused = False
 update = True
 mouseDown = False
+fastUpdate = False
 
 # Camera movement
 cameraOffset = Vector2(0, 0)
@@ -393,6 +413,8 @@ while True:
                 cameraRotateDirection += -1
             elif event.key == pygame.K_e:
                 cameraRotateDirection += 1
+            elif event.key == pygame.K_h:
+                fastUpdate = not fastUpdate
         # Check for key releases
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
@@ -437,6 +459,9 @@ while True:
 
     # Update and draw traffic
     if update:
+        if fastUpdate:
+            for i in range(5):
+                trafficSim.update(dt)
         trafficSim.update(dt)
     trafficSim.draw(trafficSurface, worldOffset, debug)
 

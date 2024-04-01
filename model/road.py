@@ -9,6 +9,7 @@ ROAD_OUTLINE_COLOR = (140, 140, 140)
 # Color of road middle yellow stripes
 ROAD_YELLOW_STRIPE_COLOR = (140, 140, 0)
 
+ROAD_OUTLINE_WIDTH = 1
 
 class Road:
     # Abstract class that defines a road object
@@ -52,14 +53,14 @@ class StraightRoad(Road):
         # Outline
         # -------
         pygame.draw.line(surface, ROAD_OUTLINE_COLOR,
-                         startTop + offset, endTop + offset, 1)
+                         startTop + offset, endTop + offset, ROAD_OUTLINE_WIDTH)
         pygame.draw.line(surface, ROAD_OUTLINE_COLOR,
-                         startBottom + offset, endBottom + offset, 1)
+                         startBottom + offset, endBottom + offset, ROAD_OUTLINE_WIDTH)
 
         # Middle yellow stripe
         # --------------------
         pygame.draw.line(surface, ROAD_YELLOW_STRIPE_COLOR,
-                         self.start + offset, self.end + offset)
+                         self.start + offset, self.end + offset, ROAD_OUTLINE_WIDTH)
 
 # General curved road, can pass any angle
 class CurvedRoad(Road):
@@ -88,7 +89,7 @@ class CurvedRoad(Road):
             self.center.y + self.sin * offsetLength + offset.y
         )
         # Draw outer arc
-        pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, self.initialAngle, self.finalAngle, 1)
+        pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, self.initialAngle, self.finalAngle, ROAD_OUTLINE_WIDTH)
         if debug:
             pygame.draw.rect(surface, (0, 140, 0), rect, 1)
 
@@ -102,7 +103,7 @@ class CurvedRoad(Road):
             self.center.y + self.sin * offsetLength + offset.y
         )
         # Draw inner arc
-        pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, self.initialAngle, self.finalAngle, 1)
+        pygame.draw.arc(surface, ROAD_OUTLINE_COLOR, rect, self.initialAngle, self.finalAngle, ROAD_OUTLINE_WIDTH)
         if debug:
             pygame.draw.rect(surface, (70, 0, 140), rect, 1)
 
@@ -116,7 +117,7 @@ class CurvedRoad(Road):
             self.center.y + self.sin * offsetLength + offset.y
         )
         # Draw middle yellow stripe arc
-        pygame.draw.arc(surface, ROAD_YELLOW_STRIPE_COLOR, rect, self.initialAngle, self.finalAngle, 1)
+        pygame.draw.arc(surface, ROAD_YELLOW_STRIPE_COLOR, rect, self.initialAngle, self.finalAngle, ROAD_OUTLINE_WIDTH)
 
 # Curved road for a turn from north to west (top to left)
 def topLeftCurvedRoad(width: float, center: Vector2, arcOffset: float) -> CurvedRoad:
