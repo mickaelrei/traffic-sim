@@ -10,9 +10,19 @@ import utils
 
 class Driver:
     def __init__(self, car: Car, path: Path, desiredVelocity: float=70, initialPathNodeIndex: int=0) -> None:
+        # Reference to the driver's car
         self.car = car
+
+        # How fast the driver wants the car to be
         self.desiredVelocity = desiredVelocity
+
+        # How fast the car should be based on traffic
+        self.appropriateVelocity = self.desiredVelocity
+
+        # Driver's current path
         self.path = path
+
+        # Driver's current node index in path
         self.pathNodeIndex = initialPathNodeIndex
 
     def update(self, dt: float, drivers: list[Driver]) -> None:
@@ -45,8 +55,8 @@ class Driver:
         self.path.draw(surface, offset, debug)
         self.car.draw(surface, offset, debug)
 
-    def adjustToDesiredSpeed(self) -> None:
-        if self.car.velocity < self.desiredVelocity:
+    def adjustToAppropriateSpeed(self) -> None:
+        if self.car.velocity < self.appropriateVelocity:
             self.car.setAccelerationAmount(0.5)
         else:
             self.car.setBrakeAmount(0.5)
@@ -68,14 +78,23 @@ class Driver:
             while angleDiff < -2 * math.pi:
                 angleDiff += 2 * math.pi
             if abs(angleDiff) > math.pi / 2:
-                print('Opposite ways')
                 continue
+
+            # Because the car can be considered as a box, check collision for
+            # each one of the 4 sides
+            points: list[Vector2] = [
+                otherCar.backLeftWheelPos(),
+                otherCar.backRightWheelPos(),
+                otherCar.frontRightWheelPos(),
+                otherCar.frontLeftWheelPos(),
+            ]
+            numPoints = len(points)
 
             # Raycast start is this car's front
             lineStart = myCar.pos + utils.directionVector(myCar.rotation) * myCar.size * myCar.wheelAxisAspectRatio
 
             # Number of rays
-            numRays = 15
+            numRays = 25
             # How spread are the rays
             raySpread = math.pi / 2
             angleStep = raySpread / numRays
@@ -87,20 +106,9 @@ class Driver:
                 angle = myCar.rotation - raySpread / 2 + i * angleStep
                 lineEnd = lineStart + utils.directionVector(angle) * 1500
                 
-                # Because the car can be considered as a box, check collision for
-                # each one of the 4 sides
-                points: list[Vector2] = [
-                    otherCar.backLeftWheelPos(),
-                    otherCar.backRightWheelPos(),
-                    otherCar.frontRightWheelPos(),
-                    otherCar.frontLeftWheelPos(),
-                ]
-                numPoints = len(points)
-
-                
-                for i in range(numPoints):
-                    p1 = points[i % numPoints]
-                    p2 = points[(i + 1) % numPoints]
+                for j in range(numPoints):
+                    p1 = points[j % numPoints]
+                    p2 = points[(j + 1) % numPoints]
 
                     # Get intersection point
                     intersec = utils.lineLineIntersection(lineStart, lineEnd, p1, p2)
@@ -113,10 +121,18 @@ class Driver:
 
             # Check if distance is too close
             actualDistance = minDistance - otherCar.size * otherCar.wheelAxisAspectRatio
-            if actualDistance < 10:
-                # TODO: Brake amount is not always 100%. This needs to be based on the distance
-                myCar.setBrakeAmount(1)
-                myCar.setAccelerationAmount(0)
+            if actualDistance < 150:
+                # Interpolate appropriate velocity towards the other car's velocity
+                self.appropriateVelocity = utils.lerp(self.appropriateVelocity, otherCar.velocity, 0.05)
+
+                if actualDistance < 40 and self.appropriateVelocity / otherCar.velocity > 1:
+                    # Brake based on how close from the other car we are
+                    # The closer, the more is needed to brake
+                    myCar.setBrakeAmount((40 - actualDistance) / 250)
+                    myCar.setAccelerationAmount(0)
+            else:
+                # Interpolate appropriate velocity towards desired velocity
+                self.appropriateVelocity = utils.lerp(self.appropriateVelocity, self.desiredVelocity, 0.01)
 
     def traversePath(self) -> None:
         if self.path == None: return
@@ -126,7 +142,7 @@ class Driver:
         # - TODO: If can't steer enough to next node, brake or switch to reverse
 
         # Adjust speed
-        self.adjustToDesiredSpeed()
+        self.adjustToAppropriateSpeed()
 
         # Get next node
         nextNodeIndex = (self.pathNodeIndex + 1) % len(self.path.nodes)
@@ -160,7 +176,7 @@ class Driver:
                     # - drive in reverse to realign
                     # - brake so the car can steer more (simulating braking in curves)
                     # - auto detonation :)
-                    print(f'NEED TO STEER MORE THAN MAX: {math.degrees(angleDiff)}')
+                    pass
 
                 # Steer accordingly
                 if angleDiff < math.pi:
