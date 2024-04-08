@@ -8,6 +8,12 @@ from model.car import Car
 from model.path import Path
 import utils
 
+# Number of rays the driver "shoots" to detect traffic entities
+DRIVER_VIEW_NUM_RAYS = 25
+
+# How spread are the rays the driver shoots
+DRIVER_VIEW_RAY_SPREAD = math.pi * .667
+
 class Driver:
     def __init__(self, car: Car, path: Path, desiredVelocity: float=70, initialPathNodeIndex: int=0) -> None:
         # Reference to the driver's car
@@ -55,6 +61,17 @@ class Driver:
         self.path.draw(surface, offset, debug)
         self.car.draw(surface, offset, debug)
 
+        # NOTE: This draws all the ray lines from the driver view,
+        # which are too distracting so its commented out only for possible future debugging
+        # if debug:
+        #     lineStart = self.car.pos + utils.directionVector(self.car.rotation) * self.car.size
+        #     angleStep = DRIVER_VIEW_RAY_SPREAD / DRIVER_VIEW_NUM_RAYS
+        #     for i in range(DRIVER_VIEW_NUM_RAYS):
+        #         # Calculate new angle
+        #         angle = self.car.rotation - DRIVER_VIEW_RAY_SPREAD / 2 + i * angleStep
+        #         lineEnd = lineStart + utils.directionVector(angle) * 1500
+        #         pygame.draw.line(surface, (0, 255, 0), offset + lineStart, offset + lineEnd)
+
     def adjustToAppropriateSpeed(self) -> None:
         if self.car.velocity < self.appropriateVelocity:
             self.car.setAccelerationAmount(0.5)
@@ -91,19 +108,16 @@ class Driver:
             numPoints = len(points)
 
             # Raycast start is this car's front
-            lineStart = myCar.pos + utils.directionVector(myCar.rotation) * myCar.size * myCar.wheelAxisAspectRatio
+            lineStart = myCar.pos + utils.directionVector(myCar.rotation) * myCar.size
 
-            # Number of rays
-            numRays = 25
-            # How spread are the rays
-            raySpread = math.pi / 2
-            angleStep = raySpread / numRays
+            # Ray angle step
+            angleStep = DRIVER_VIEW_RAY_SPREAD / DRIVER_VIEW_NUM_RAYS
             
             # Get minimum distance
             minDistance = 1e6
-            for i in range(numRays):
+            for i in range(DRIVER_VIEW_NUM_RAYS):
                 # Calculate new angle
-                angle = myCar.rotation - raySpread / 2 + i * angleStep
+                angle = myCar.rotation - DRIVER_VIEW_RAY_SPREAD / 2 + i * angleStep
                 lineEnd = lineStart + utils.directionVector(angle) * 1500
                 
                 for j in range(numPoints):
@@ -125,7 +139,7 @@ class Driver:
                 # Interpolate appropriate velocity towards the other car's velocity
                 self.appropriateVelocity = utils.lerp(self.appropriateVelocity, otherCar.velocity, 0.05)
 
-                if actualDistance < 40 and self.appropriateVelocity / otherCar.velocity > 1:
+                if actualDistance < 40 and otherCar.velocity != 0 and self.appropriateVelocity / otherCar.velocity > 1:
                     # Brake based on how close from the other car we are
                     # The closer, the more is needed to brake
                     myCar.setBrakeAmount((40 - actualDistance) / 250)
