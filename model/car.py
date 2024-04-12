@@ -66,7 +66,7 @@ class Car:
 
         # How much the car is accelerating (between 0 and 1)
         self.accelerationAmount = 0
-        
+
         # How much the car is braking (between 0 and 1)
         self.brakeAmount = 0
 
@@ -163,17 +163,17 @@ class Car:
         halfX = self.verticalWheelDist() / 2
         halfY = self.horizontalWheelDist() / 2
         return self.pos + utils.rotatePointAroundPivot(Vector2(halfX, -halfY), Vector2(0, 0), self.rotation)
-    
+
     def frontRightWheelPos(self) -> Vector2:
         halfX = self.verticalWheelDist() / 2
         halfY = self.horizontalWheelDist() / 2
         return self.pos + utils.rotatePointAroundPivot(Vector2(halfX, halfY), Vector2(0, 0), self.rotation)
-    
+
     def backLeftWheelPos(self) -> Vector2:
         halfX = self.verticalWheelDist() / 2
         halfY = self.horizontalWheelDist() / 2
         return self.pos + utils.rotatePointAroundPivot(Vector2(-halfX, -halfY), Vector2(0, 0), self.rotation)
-    
+
     def backRightWheelPos(self) -> Vector2:
         halfX = self.verticalWheelDist() / 2
         halfY = self.horizontalWheelDist() / 2

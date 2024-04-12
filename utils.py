@@ -234,7 +234,7 @@ def lineLineIntersection(p1: Vector2, p2: Vector2, p3: Vector2, p4: Vector2) -> 
     # Both t and u need to be in [0, 1] range
     if not (t >= 0 and t <= 1 and u >= 0 and u <= 1):
         return None
-    
+
     # Check if intersection point lies in line 1 or in line 2
     if t >= 0 and t <= 1:
         # Point is between p1 and p2

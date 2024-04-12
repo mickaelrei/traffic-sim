@@ -112,14 +112,14 @@ class Driver:
 
             # Ray angle step
             angleStep = DRIVER_VIEW_RAY_SPREAD / DRIVER_VIEW_NUM_RAYS
-            
+
             # Get minimum distance
             minDistance = 1e6
             for i in range(DRIVER_VIEW_NUM_RAYS):
                 # Calculate new angle
                 angle = myCar.rotation - DRIVER_VIEW_RAY_SPREAD / 2 + i * angleStep
                 lineEnd = lineStart + utils.directionVector(angle) * 1500
-                
+
                 for j in range(numPoints):
                     p1 = points[j % numPoints]
                     p2 = points[(j + 1) % numPoints]

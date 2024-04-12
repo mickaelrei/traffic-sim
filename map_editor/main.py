@@ -141,7 +141,6 @@ def addRoadLine(startWorld: Vector2, endWorld: Vector2) -> None:
 
                     # Add new road
                     roadLines.append(RoadLine(startTileIndex, endTileIndex))
-                    roadLines.append(RoadLine(startTileIndex, endTileIndex))
                     overlapping = True
                     break
 
@@ -168,7 +167,6 @@ def isRoadMapValid(lines: list[RoadLine]) -> bool:
             length = (otherRoad.end - otherRoad.start).length()
             p = otherRoad.start.copy()
             for i in range(int(length)+1):
-                # print(p)
                 if road.start == p:
                     startCoincides = True
                 if road.end == p:
@@ -252,7 +250,7 @@ while True:
     tilesX = int(WIDTH / TILE_SIZE)
     tilesY = int(HEIGHT / TILE_SIZE)
     # Horizontal
-    for i in range(cameraTileY - 1, cameraTileY + tilesY + 1):
+    for i in range(cameraTileY - 2, cameraTileY + tilesY + 2):
         pygame.draw.line(
             window,
             (50, 50, 50),
@@ -260,7 +258,7 @@ while True:
             (WIDTH, i * TILE_SIZE + cameraPos.y),
         )
     # Vertical
-    for i in range(cameraTileX - 1, cameraTileX + tilesX + 1):
+    for i in range(cameraTileX - 2, cameraTileX + tilesX + 2):
         pygame.draw.line(
             window,
             (50, 50, 50),
