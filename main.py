@@ -1,7 +1,7 @@
 from model.car import Car
 from model.driver import Driver
 from model.traffic_sim import TrafficSim
-from model.road import Road, StraightRoad, CurvedRoad, topLeftCurvedRoad, topRightCurvedRoad, bottomLeftCurvedRoad, bottomRightCurvedRoad
+from model.road import Road, StraightRoad, CurvedRoad, Roundabout, topLeftCurvedRoad, topRightCurvedRoad, bottomLeftCurvedRoad, bottomRightCurvedRoad
 from model.path import Path
 import utils
 import pygame
@@ -356,7 +356,7 @@ mouseDown = False
 fastUpdate = False
 
 # Camera movement
-cameraOffset = Vector2(0, 0)
+cameraOffset = Vector2(WIDTH/2, HEIGHT/2)
 cameraRotation = 0
 cameraRotateSpeed = 1
 cameraRotateDirection = 0
@@ -438,17 +438,34 @@ while True:
     if not isFocused:
         cameraRotation += cameraRotateDirection * cameraRotateSpeed * dt
 
+    # Get focused car offset
+    if isFocused:
+        worldOffset = -trafficSim.drivers[focusedIndex].car.pos + Vector2(WIDTH, HEIGHT)
+    else:
+        worldOffset = cameraOffset
+
     # Clear window
     window.fill(BLACK)
 
     # Traffic drawing surface
     trafficSurface = pygame.Surface((WIDTH * 2, HEIGHT * 2))
 
-    # Get focused car offset
-    if isFocused:
-        worldOffset = -trafficSim.drivers[focusedIndex].car.pos + Vector2(WIDTH, HEIGHT)
-    else:
-        worldOffset = cameraOffset
+    # NOTE: This is for testing the roundabout; remove when testing is done
+    # center = Vector2(WIDTH/2, HEIGHT/2)
+    # r = Roundabout(tileSize, center, connectTop=True, connectLeft=True, connectBottom=True, connectRight=True)
+    # r.draw(trafficSurface, worldOffset, debug)
+
+    # l = StraightRoad(tileSize, Vector2(0, center.y), center - Vector2(tileSize * 2, 0))
+    # l.draw(trafficSurface, worldOffset, debug)
+
+    # r = StraightRoad(tileSize, Vector2(WIDTH, center.y), center + Vector2(tileSize * 2, 0))
+    # r.draw(trafficSurface, worldOffset, debug)
+
+    # t = StraightRoad(tileSize, Vector2(center.x, 0), center - Vector2(0, tileSize * 2))
+    # t.draw(trafficSurface, worldOffset, debug)
+
+    # b = StraightRoad(tileSize, Vector2(center.x, HEIGHT), center + Vector2(0, tileSize * 2))
+    # b.draw(trafficSurface, worldOffset, debug)
 
     # Draw the roads
     for road in roads:

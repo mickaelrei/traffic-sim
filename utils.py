@@ -7,9 +7,16 @@ DEFAULT_ARROW_COLOR = (255, 0, 255)
 
 DEFAULT_TEXT_COLOR = (255, 255, 255)
 
+
 # Draws an arrow, given start and end points
-def drawArrow(surface: pygame.Surface, start: Vector2, end: Vector2, color: tuple=None) -> None:
-    if end == start: return
+def drawArrow(
+    surface: pygame.Surface,
+    start: Vector2,
+    end: Vector2,
+    color: tuple = None,
+) -> None:
+    if end == start:
+        return
 
     if color == None:
         color = DEFAULT_ARROW_COLOR
@@ -31,11 +38,22 @@ def drawArrow(surface: pygame.Surface, start: Vector2, end: Vector2, color: tupl
     # Small line 2
     pygame.draw.line(surface, color, end, end - arrow1 * 10)
 
+
 # Draws a text at a specified position
-def drawText(surface: pygame.Surface, text: str, pos: Vector2, fontSize: int=18,
-             fontType: str="comicsans", bold: bool=False, italic: bool=False,
-             antiAlias: bool=False, textColor: tuple=None, bgColor: tuple=None,
-             anchorX: float=0, anchorY: float=0):
+def drawText(
+    surface: pygame.Surface,
+    text: str,
+    pos: Vector2,
+    fontSize: int = 18,
+    fontType: str = "comicsans",
+    bold: bool = False,
+    italic: bool = False,
+    antiAlias: bool = False,
+    textColor: tuple = None,
+    bgColor: tuple = None,
+    anchorX: float = 0,
+    anchorY: float = 0,
+):
     if textColor is None:
         textColor = DEFAULT_TEXT_COLOR
 
@@ -45,6 +63,34 @@ def drawText(surface: pygame.Surface, text: str, pos: Vector2, fontSize: int=18,
     textRect.center = pos + Vector2(textRect.width * anchorX, textRect.height * anchorY)
     surface.blit(textSurface, textRect)
 
+
+def drawArc(
+    surface: pygame.Surface,
+    color: tuple,
+    center: Vector2,
+    size: Vector2,
+    startAngle: float,
+    endAngle: float,
+    width: float
+) -> None:
+    while endAngle < startAngle:
+        endAngle += 2 * math.pi
+    # List of points
+    points: list[Vector2] = []
+    numPoints = 50
+    step = (endAngle - startAngle) / numPoints
+    for i in range(numPoints + 1):
+        angle = startAngle + step * i
+        points.append(
+            Vector2(
+                center.x + size.x * math.cos(angle),
+                center.y + size.y * math.sin(angle),
+            )
+        )
+
+    pygame.draw.lines(surface, color, False, points, width)
+
+
 # Returns a direction vector from a given angle
 # NOTE: angle is interpreted as rad
 def directionVector(angle: float) -> Vector2:
@@ -52,8 +98,11 @@ def directionVector(angle: float) -> Vector2:
     s = math.sin(angle)
     return Vector2(c, s)
 
+
+# Returns the angle from a direction vector
 def angleFromDirection(direction: Vector2) -> float:
     return math.atan2(direction.y, direction.x)
+
 
 # Puts the given angle in the 0-2pi range
 def normalizeAngle(angle: float) -> float:
@@ -64,9 +113,11 @@ def normalizeAngle(angle: float) -> float:
 
     return angle
 
+
 # Performs linear interpolation from a to b with alpha t
 def lerp(a: float, b: float, t: float) -> float:
     return a + (b - a) * t
+
 
 # Rotate a point around a pivot by a given angle
 # Taken from: https://stackoverflow.com/questions/2259476/rotating-a-point-about-another-point-2d
@@ -87,6 +138,7 @@ def rotatePointAroundPivot(point: Vector2, pivot: Vector2, angle: float) -> Vect
     # Translate point back
     return Vector2(newX, newY) + pivot
 
+
 # Returns -1 for negative values, +1 for positive values, and zero for x = 0
 def sign(x: float) -> float:
     if x < 0:
@@ -95,6 +147,7 @@ def sign(x: float) -> float:
         return 1
     return 0
 
+
 # Clamps x between a minimum and maximum value
 def clamp(x: float, min: float, max: float) -> float:
     if x < min:
@@ -102,6 +155,7 @@ def clamp(x: float, min: float, max: float) -> float:
     if x > max:
         return max
     return x
+
 
 # Returns the given path with smooth curves (more nodes on curve)
 def smoothPathCurves(path: Path) -> Path:
@@ -118,7 +172,7 @@ def smoothPathCurves(path: Path) -> Path:
     # Remove node duplicates
     for i in range(len(originalNodes) - 2, -1, -1):
         if (originalNodes[i] - originalNodes[i + 1]).length() == 0:
-            print(f'Removed node duplicate at index {i + 1}')
+            print(f"Removed node duplicate at index {i + 1}")
             originalNodes.pop(i + 1)
 
     # Save last node for angle check
@@ -177,13 +231,18 @@ def smoothPathCurves(path: Path) -> Path:
                 # Calculate how much the point moves in the direction of the curve
                 t = (j + 1) * step
                 point = node + (nextNode - node) * t
-                normalDisplacement = 0.8 * (-t**2 + t)
+                normalDisplacement = 0.8 * (-(t**2) + t)
 
                 # Add new intermediate point
-                intermediateNodes.append(point + normalToNext * distance * normalDisplacement)
+                intermediateNodes.append(
+                    point + normalToNext * distance * normalDisplacement,
+                )
 
             # Set last node to be the last intermediate node
-            lastNode = intermediateNodes[len(intermediateNodes) - 1]
+            if len(intermediateNodes) > 0:
+                lastNode = intermediateNodes[len(intermediateNodes) - 1]
+            else:
+                lastNode = node
         else:
             lastNode = node
 
@@ -206,29 +265,37 @@ def createPath(startPos: Vector2, endPos: Vector2) -> Path:
     nodes: list[Vector2] = []
     return Path(nodes)
 
+
 # Calculates intersection between two line segments.
-# 
+#
 # First segment is defined as:
 # - Start = [p1]
 # - End   = [p2]
-# 
+#
 # Second segment is defined as:
 # - Start = [p3]
 # - End   = [p4]
-# 
+#
 # Returns the point of intersection, or None if no intersection
-# 
+#
 # Reference:
 # https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-def lineLineIntersection(p1: Vector2, p2: Vector2, p3: Vector2, p4: Vector2) -> Vector2 | None:
+def lineLineIntersection(
+    p1: Vector2,
+    p2: Vector2,
+    p3: Vector2,
+    p4: Vector2,
+) -> Vector2 | None:
     t0 = (p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)
     t1 = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x)
-    if t1 == 0: return None
+    if t1 == 0:
+        return None
     t = t0 / t1
 
     u0 = (p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)
     u1 = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x)
-    if u1 == 0: return None
+    if u1 == 0:
+        return None
     u = -u0 / u1
 
     # Both t and u need to be in [0, 1] range
