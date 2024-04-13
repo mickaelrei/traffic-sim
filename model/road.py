@@ -201,7 +201,7 @@ class Roundabout(Road):
         offset: Vector2 = Vector2(0, 0),
         debug: bool = False,
     ) -> None:
-        arcOffset = 10
+        arcOffset = self.width / 10
         sizeMult = 2
         size = Vector2(self.width * sizeMult)
         offsetAngle = math.asin((self.width / 2 + arcOffset) / (self.width * sizeMult))

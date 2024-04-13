@@ -455,16 +455,20 @@ while True:
     # r = Roundabout(tileSize, center, connectTop=True, connectLeft=True, connectBottom=True, connectRight=True)
     # r.draw(trafficSurface, worldOffset, debug)
 
-    # l = StraightRoad(tileSize, Vector2(0, center.y), center - Vector2(tileSize * 2, 0))
+    # start = center - Vector2(tileSize * 2, 0)
+    # l = StraightRoad(tileSize, start, start + Vector2(-1000, 0))
     # l.draw(trafficSurface, worldOffset, debug)
 
-    # r = StraightRoad(tileSize, Vector2(WIDTH, center.y), center + Vector2(tileSize * 2, 0))
+    # start = center + Vector2(tileSize * 2, 0)
+    # r = StraightRoad(tileSize, start, start + Vector2(1000, 0))
     # r.draw(trafficSurface, worldOffset, debug)
 
-    # t = StraightRoad(tileSize, Vector2(center.x, 0), center - Vector2(0, tileSize * 2))
+    # start = center - Vector2(0, tileSize * 2)
+    # t = StraightRoad(tileSize, start, start + Vector2(0, -1000))
     # t.draw(trafficSurface, worldOffset, debug)
 
-    # b = StraightRoad(tileSize, Vector2(center.x, HEIGHT), center + Vector2(0, tileSize * 2))
+    # start = center + Vector2(0, tileSize * 2)
+    # b = StraightRoad(tileSize, start, start + Vector2(0, 1000))
     # b.draw(trafficSurface, worldOffset, debug)
 
     # Draw the roads
