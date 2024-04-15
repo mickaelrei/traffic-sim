@@ -14,8 +14,9 @@ DRIVER_VIEW_NUM_RAYS = 25
 # How spread are the rays the driver shoots
 DRIVER_VIEW_RAY_SPREAD = math.pi * .667
 
+# Class that represents a driver inside a car
 class Driver:
-    def __init__(self, car: Car, path: Path, desiredVelocity: float=70, initialPathNodeIndex: int=0) -> None:
+    def __init__(self, car: Car, path: Path, desiredVelocity: float = 70, initialPathNodeIndex: int = 0) -> None:
         # Reference to the driver's car
         self.car = car
 
@@ -57,7 +58,7 @@ class Driver:
         # Update car
         self.car.update(dt)
 
-    def draw(self, surface: pygame.Surface, offset: Vector2=Vector2(0, 0), debug: bool=False) -> None:
+    def draw(self, surface: pygame.Surface, offset: Vector2 = Vector2(0, 0), debug: bool = False) -> None:
         self.path.draw(surface, offset, debug)
         self.car.draw(surface, offset, debug)
 
@@ -81,7 +82,8 @@ class Driver:
     def checkCarCollisions(self, drivers: list[Driver]) -> None:
         myCar = self.car
         for driver in drivers:
-            if driver == self: continue
+            if driver == self:
+                continue
 
             # Check if car is in front of this car for at least 50 units
             # ----------------------------------------------------------
@@ -108,7 +110,8 @@ class Driver:
             numPoints = len(points)
 
             # Raycast start is this car's front
-            lineStart = myCar.pos + utils.directionVector(myCar.rotation) * myCar.size
+            lineStart = myCar.pos + \
+                utils.directionVector(myCar.rotation) * myCar.size
 
             # Ray angle step
             angleStep = DRIVER_VIEW_RAY_SPREAD / DRIVER_VIEW_NUM_RAYS
@@ -125,8 +128,10 @@ class Driver:
                     p2 = points[(j + 1) % numPoints]
 
                     # Get intersection point
-                    intersec = utils.lineLineIntersection(lineStart, lineEnd, p1, p2)
-                    if intersec == None: continue
+                    intersec = utils.lineLineIntersection(
+                        lineStart, lineEnd, p1, p2)
+                    if intersec == None:
+                        continue
 
                     # Update min distance
                     dist = (lineStart - intersec).length()
@@ -137,7 +142,8 @@ class Driver:
             actualDistance = minDistance - otherCar.size * otherCar.wheelAxisAspectRatio
             if actualDistance < 150:
                 # Interpolate appropriate velocity towards the other car's velocity
-                self.appropriateVelocity = utils.lerp(self.appropriateVelocity, otherCar.velocity, 0.05)
+                self.appropriateVelocity = utils.lerp(
+                    self.appropriateVelocity, otherCar.velocity, 0.05)
 
                 if actualDistance < 40 and otherCar.velocity != 0 and self.appropriateVelocity / otherCar.velocity > 1:
                     # Brake based on how close from the other car we are
@@ -146,10 +152,12 @@ class Driver:
                     myCar.setAccelerationAmount(0)
             else:
                 # Interpolate appropriate velocity towards desired velocity
-                self.appropriateVelocity = utils.lerp(self.appropriateVelocity, self.desiredVelocity, 0.01)
+                self.appropriateVelocity = utils.lerp(
+                    self.appropriateVelocity, self.desiredVelocity, 0.01)
 
     def traversePath(self) -> None:
-        if self.path == None: return
+        if self.path == None:
+            return
 
         # Path algorithm:
         # - Adjust steering based on angle difference from current to next node

@@ -3,8 +3,10 @@ import pygame
 from pygame.math import Vector2
 from model.path import Path
 
+# Default color for arrow (pink)
 DEFAULT_ARROW_COLOR = (255, 0, 255)
 
+# Default color for text (white)
 DEFAULT_TEXT_COLOR = (255, 255, 255)
 
 
@@ -60,7 +62,10 @@ def drawText(
     font = pygame.font.SysFont(fontType, round(fontSize), bold, italic)
     textSurface = font.render(str(text), antiAlias, textColor, bgColor)
     textRect = textSurface.get_rect()
-    textRect.center = pos + Vector2(textRect.width * anchorX, textRect.height * anchorY)
+    textRect.center = Vector2(
+        textRect.width * anchorX,
+        textRect.height * anchorY,
+    ) + pos
     surface.blit(textSurface, textRect)
 
 
@@ -73,21 +78,22 @@ def drawArc(
     endAngle: float,
     width: float
 ) -> None:
+    # Make end angle be greater than start angle
     while endAngle < startAngle:
         endAngle += 2 * math.pi
+
     # List of points
     points: list[Vector2] = []
     numPoints = 50
     step = (endAngle - startAngle) / numPoints
     for i in range(numPoints + 1):
         angle = startAngle + step * i
-        points.append(
-            Vector2(
-                center.x + size.x * math.cos(angle),
-                center.y + size.y * math.sin(angle),
-            )
-        )
+        points.append(Vector2(
+            center.x + size.x * math.cos(angle),
+            center.y + size.y * math.sin(angle),
+        ))
 
+    # Draw lines
     pygame.draw.lines(surface, color, False, points, width)
 
 

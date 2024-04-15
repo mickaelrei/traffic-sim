@@ -3,3 +3,6 @@ __pycache__/
 
 # Python virtual environment
 venv/
+
+# JSON saved maps
+road_maps/**

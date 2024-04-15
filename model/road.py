@@ -9,8 +9,29 @@ ROAD_OUTLINE_COLOR = (140, 140, 140)
 # Color of road middle yellow stripes
 ROAD_YELLOW_STRIPE_COLOR = (140, 140, 0)
 
+# How thick are the road outlines
 ROAD_OUTLINE_WIDTH = 3
 
+# Class to help with visualizing a roadmap's line
+class RoadLine:
+    def __init__(self, start: Vector2, end: Vector2) -> None:
+        self.start = start
+        self.end = end
+
+    def __repr__(self) -> str:
+        return f"[{self.start.x:.0f}, {self.start.y:.0f}] - [{self.end.x:.0f}, {self.end.y:.0f}]"
+    
+    def toJSON(self) -> dict:
+        return {
+            "start": {
+                "x": self.start.x,
+                "y": self.start.y,
+            },
+            "end": {
+                "x": self.end.x,
+                "y": self.end.y,
+            }
+        }
 
 # Abstract class road
 class Road:
@@ -113,15 +134,6 @@ class CurvedRoad(Road):
         offset: Vector2 = Vector2(0, 0),
         debug: bool = False,
     ) -> None:
-        if debug:
-            pygame.draw.circle(
-                surface,
-                (255, 0, 0),
-                self.center + offset,
-                10,
-                1,
-            )
-
         # Calculate center and size for outer arc
         # --------------------------------------------
         offsetLength = math.sqrt(2) * (self.width / 2 + self.arcOffset)
@@ -201,10 +213,17 @@ class Roundabout(Road):
         offset: Vector2 = Vector2(0, 0),
         debug: bool = False,
     ) -> None:
+        # Roundabout outwards arc offset
         arcOffset = self.width / 10
+
+        # How much bigger is the roundabout
         sizeMult = 2
         size = Vector2(self.width * sizeMult)
-        offsetAngle = math.asin((self.width / 2 + arcOffset) / (self.width * sizeMult))
+
+        # Quarter arc angle offset based on road width, to adjust connection to other roads
+        offsetAngle = math.asin(
+            (self.width / 2 + arcOffset) / (self.width * sizeMult)
+        )
 
         # Top left arc
         # ------------

@@ -3,7 +3,7 @@ from pygame.math import Vector2
 from model.car import Car
 from model.driver import Driver
 
-
+# Main class for traffic simulation
 class TrafficSim:
     def __init__(self) -> None:
         self.drivers: list[Driver] = []
