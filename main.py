@@ -121,6 +121,10 @@ def handleOption(option: int) -> None:
 
 
 def main() -> None:
+    # Check if road maps dir exists
+    if not os.path.exists("./road_maps"):
+        os.mkdir("./road_maps")
+
     print("============================")
     print("||   Traffic Simulation   ||")
     print("============================\n")
