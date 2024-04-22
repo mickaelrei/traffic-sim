@@ -41,29 +41,29 @@ def runSimulationApp() -> None:
         files[i] = file[:-5]
 
     print("\nAvailable maps:")
-    for file in files:
-        print(f" - {file}")
+    for i, file in enumerate(files):
+        print(f"[{i}] {file}")
 
     # Check what map the user wants to use
-    print("\nChoose map by name:")
-    selectedMap = input("> ").strip()
-    if files.count(selectedMap) == 0:
-        print("Map not found")
+    print("\nChoose map by number:")
+    index = input("> ").strip()
+    try:
+        index = int(index)
+        if index < 0 or index >= len(files):
+            print("\nInvalid number")
+            return
+    except ValueError:
         return
-
-    with open(f"./road_maps/{selectedMap}.json", "r") as f:
-        # TODO: Generate nodes
-        pass
-
-    # TODO: Use selected map as input for TrafficSimulationApp:
-    # - Convert lines' start/end points to world position
-    # - Create map nodes from lines' start/end world position (left/right-hand sides)
-    # - Each driver selects a random starting point, and a destination point as his path
 
     # Create and run app
     from view.simulation import TrafficSimulationApp
 
-    app = TrafficSimulationApp(600, 600, 60)
+    app = TrafficSimulationApp(
+        600,
+        600,
+        60,
+        roadMapFilePath=f"./road_maps/{files[index]}.json",
+    )
     app.run()
 
 # Runs map editor app, possibly saving a map to a file
@@ -153,3 +153,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+    # from view.short_path_algo import ShortPathAlgorithmApp
+    # app = ShortPathAlgorithmApp(600, 600, 60)
+    # app.run()

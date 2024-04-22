@@ -1,12 +1,13 @@
 from model.app import PygameApp
 from model.traffic_sim import TrafficSim
-from model.road import Road, StraightRoad, Roundabout, topLeftCurvedRoad, topRightCurvedRoad, bottomLeftCurvedRoad, bottomRightCurvedRoad
+from model.road import Road, StraightRoad, RoadLine, topLeftCurvedRoad, topRightCurvedRoad, bottomLeftCurvedRoad, bottomRightCurvedRoad
 from model.path import Path
 from model.car import Car
 from model.driver import Driver
 import utils
 import math
 import pygame
+import json
 from pygame.event import Event
 from pygame.math import Vector2
 
@@ -297,8 +298,10 @@ driver1 = Driver(
 )
 
 # Pygame app to show a traffic simulation
+
+
 class TrafficSimulationApp(PygameApp):
-    def __init__(self, width: int, height: int, fps: float = 60) -> None:
+    def __init__(self, width: int, height: int, fps: float = 60, roadMapFilePath: str | None = None) -> None:
         super().__init__(width, height, fps)
 
         # Whether debug rendering is on
@@ -397,6 +400,33 @@ class TrafficSimulationApp(PygameApp):
                         center - Vector2(tileSize/2 + leftDiff, 0),
                         center + Vector2(tileSize/2 + rightDiff, 0),
                     ))
+
+        # Load road map
+        if roadMapFilePath != None:
+            self.loadRoadMap(roadMapFilePath)
+
+    def loadRoadMap(self, filePath: str) -> None:
+        roadLines: list[RoadLine] = []
+        with open(filePath, "r") as f:
+            lst = json.load(f)
+            for obj in lst:
+                roadLines.append(RoadLine(
+                    Vector2(
+                        obj["start"]["x"],
+                        obj["start"]["y"],
+                    ),
+                    Vector2(
+                        obj["end"]["x"],
+                        obj["end"]["y"],
+                    ),
+                ))
+
+        # TODO: What to do after loading road lines from JSON:
+        # - Get road full path by traversing through road connections (start to end, or end to start)
+        # - Get curve points by checking angle difference between points
+        # - Generate points for both left and right ways on each curve's start/end points
+        # - Generate points graph to be able to use A* algorithm for path generation
+        print(roadLines)
 
     def onEvent(self, event: Event) -> None:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:

@@ -315,3 +315,66 @@ def lineLineIntersection(
     else:
         # Point is between p3 and p4
         return p3 + (p4 - p3) * u
+
+# Converts a vector to a string, used as a key in a dict
+def vecToStr(v: Vector2) -> str:
+    return f"{v.x:.0f}|{v.y:.0f}"
+
+def A_StarReconstructPath(cameFrom: dict[str, Vector2], current: Vector2) -> list[Vector2]:
+    total_path = [current]
+    while vecToStr(current) in cameFrom.keys():
+        current = cameFrom[vecToStr(current)]
+        total_path.insert(0, current)
+    return total_path
+
+# A* finds a path from start to goal.
+# https://en.wikipedia.org/wiki/A*_search_algorithm
+def A_Star(graph: dict[str, list[Vector2]], start: Vector2, goal: Vector2):
+    # The set of discovered nodes that may need to be (re-)expanded.
+    # Initially, only the start node is known.
+    # This is usually implemented as a min-heap or priority queue rather than a hash-set.
+    openSet = [start]
+
+    # For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from the start
+    # to n currently known.
+    cameFrom: dict[str, Vector2] = {}
+
+    # For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
+    gScore: dict[str, float] = {}
+    gScore[vecToStr(start)] = 0
+
+    # For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
+    # how cheap a path could be from start to finish if it goes through n.
+    fScore: dict[str, float] = {}
+    fScore[vecToStr(start)] = 0
+
+    while len(openSet) > 0:
+        # This operation can occur in O(Log(N)) time if openSet is a min-heap or a priority queue
+        # current := the node in openSet having the lowest fScore[] value
+        lowestFscore = 1e10
+        current = None
+        for node in openSet:
+            nodeFscore = fScore.get(vecToStr(node), 1e10)
+            if nodeFscore < lowestFscore:
+                current = node
+                lowestFscore = nodeFscore
+
+        if current == goal:
+            return A_StarReconstructPath(cameFrom, current)
+
+        openSet.remove(current)
+        neighbors = graph.get(vecToStr(current), [])
+        for neighbor in neighbors:
+            # d(current,neighbor) is the weight of the edge from current to neighbor
+            # tentative_gScore is the distance from start to the neighbor through current
+            tentative_gScore = gScore.get(vecToStr(current), 1e10) + current.distance_to(neighbor)
+            if tentative_gScore < gScore.get(vecToStr(neighbor), 1e10):
+                # This path to neighbor is better than any previous one. Record it!
+                cameFrom[vecToStr(neighbor)] = current
+                gScore[vecToStr(neighbor)] = tentative_gScore
+                fScore[vecToStr(neighbor)] = tentative_gScore + start.distance_to(neighbor)
+                if neighbor not in openSet:
+                    openSet.append(neighbor)
+
+    # Open set is empty but goal was never reached
+    return None
