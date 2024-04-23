@@ -410,14 +410,15 @@ class TrafficSimulationApp(PygameApp):
         with open(filePath, "r") as f:
             lst = json.load(f)
             for obj in lst:
+                # Multiply all coordinates by 2 to create between-tile spacing
                 roadLines.append(RoadLine(
                     Vector2(
-                        obj["start"]["x"],
-                        obj["start"]["y"],
+                        obj["start"]["x"] * 2,
+                        obj["start"]["y"] * 2,
                     ),
                     Vector2(
-                        obj["end"]["x"],
-                        obj["end"]["y"],
+                        obj["end"]["x"] * 2,
+                        obj["end"]["y"] * 2,
                     ),
                 ))
 
@@ -426,7 +427,37 @@ class TrafficSimulationApp(PygameApp):
         # - Get curve points by checking angle difference between points
         # - Generate points for both left and right ways on each curve's start/end points
         # - Generate points graph to be able to use A* algorithm for path generation
-        print(roadLines)
+        minX = minY = 1e10
+        maxX = maxY = -1e10
+        for roadLine in roadLines:
+            minX = min(minX, roadLine.start.x, roadLine.end.x)
+            minY = min(minY, roadLine.start.y, roadLine.end.y)
+            maxX = max(maxX, roadLine.start.x, roadLine.end.x)
+            maxY = max(maxY, roadLine.start.y, roadLine.end.y)
+        minX = int(minX)
+        minY = int(minY)
+        maxX = int(maxX)
+        maxY = int(maxY)
+        sizeX = maxX - minX + 1
+        sizeY = maxY - minY  +1
+
+        tiles = [[0] * sizeX for _ in range(sizeY)]
+
+        # TODO: Maybe this could be optimized
+        for j in range(sizeY):
+            for i in range(sizeX):
+                p = Vector2(i + minX, j + minY)
+                for line in roadLines:
+                    if line.contains(p):
+                        tiles[j][i] = 1
+
+        print('\nRoad map loaded:\n')
+        for line in tiles:
+            for tile in line:
+                print(("█" if tile == 1 else ' ') * 2, end='')
+            print()
+
+        # TODO: Run loops to identify curves and calculate node points
 
     def onEvent(self, event: Event) -> None:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:

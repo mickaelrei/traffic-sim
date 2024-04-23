@@ -12,15 +12,29 @@ ROAD_YELLOW_STRIPE_COLOR = (140, 140, 0)
 # How thick are the road outlines
 ROAD_OUTLINE_WIDTH = 3
 
+
 # Class to help with visualizing a roadmap's line
 class RoadLine:
     def __init__(self, start: Vector2, end: Vector2) -> None:
         self.start = start
         self.end = end
 
+    # Returns whether a given [point] lies on this road line
+    def contains(self, point: Vector2) -> bool:
+        liesInX = (
+            min(self.start.x, self.end.x) <= point.x <= max(self.start.x, self.end.x)
+        )
+        liesInY = (
+            min(self.start.y, self.end.y) <= point.y <= max(self.start.y, self.end.y)
+        )
+        slopeY = (self.end.x - self.start.x) * (point.y - self.start.y)
+        slopeX = (self.end.y - self.start.y) * (point.x - self.start.x)
+
+        return liesInX and liesInY and abs(slopeY - slopeX) < 1e5
+
     def __repr__(self) -> str:
         return f"[{self.start.x:.0f}, {self.start.y:.0f}] - [{self.end.x:.0f}, {self.end.y:.0f}]"
-    
+
     def toJSON(self) -> dict:
         return {
             "start": {
@@ -30,8 +44,9 @@ class RoadLine:
             "end": {
                 "x": self.end.x,
                 "y": self.end.y,
-            }
+            },
         }
+
 
 # Abstract class road
 class Road:
@@ -221,9 +236,7 @@ class Roundabout(Road):
         size = Vector2(self.width * sizeMult)
 
         # Quarter arc angle offset based on road width, to adjust connection to other roads
-        offsetAngle = math.asin(
-            (self.width / 2 + arcOffset) / (self.width * sizeMult)
-        )
+        offsetAngle = math.asin((self.width / 2 + arcOffset) / (self.width * sizeMult))
 
         # Top left arc
         # ------------

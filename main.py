@@ -105,7 +105,7 @@ def runMapEditorApp() -> None:
 
     # Save to json file
     with open(f"./road_maps/{name}.json", "w") as f:
-        json.dump(jsonLines, f)
+        json.dump(jsonLines, f, indent=4)
 
 
 def handleOption(option: int) -> None:
