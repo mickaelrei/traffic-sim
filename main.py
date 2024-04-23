@@ -94,6 +94,9 @@ def runMapEditorApp() -> None:
     # Get map name
     print("\nMap name:")
     name = input("> ").strip()
+    while len(name) == 0:
+        print("Name can't be empty.\n")
+        name = input("> ").strip()
 
     # Convert RoadLine objects to json
     jsonLines = []
