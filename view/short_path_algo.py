@@ -1,16 +1,112 @@
 import pygame
 import utils
 import math
+import json
 from pygame.event import Event
 from pygame.math import Vector2
 from model.app import PygameApp
+from model.road import Road, RoadLine, topRightCurvedRoad, topLeftCurvedRoad, bottomRightCurvedRoad, bottomLeftCurvedRoad
 from random import randint
 
 BLACK = (0, 0, 0)
 
+# Defines the callback for when the rule for a top right corner is met
+def ruleTopRightCorner(
+    p: Vector2,
+    tileSize: float,
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    print('Found top right corner')
+    # Roads to be added
+    roads: list[Road] = []
+
+    # Add top right curve
+    roads.append(topRightCurvedRoad(tileSize, p * tileSize, curveArcOffset))
+
+    # Points to be added
+    points: list[Vector2] = []
+
+    # TODO: Calculate points around curve
+
+    return roads, points
+
+# Defines the callback for when the rule for a top left corner is met
+def ruleTopLeftCorner(
+    p: Vector2,
+    tileSize: float,
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    print('Found top left corner')
+    # Roads to be added
+    roads: list[Road] = []
+
+    # Add top left curve
+    roads.append(topLeftCurvedRoad(tileSize, p * tileSize, curveArcOffset))
+
+    # Points to be added
+    points: list[Vector2] = []
+
+    # TODO: Calculate points around curve
+
+    return roads, points
+
+# Defines the callback for when the rule for a bottom right corner is met
+def ruleBottomRightCorner(
+    p: Vector2,
+    tileSize: float,
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    print('Found bottom right corner')
+    # Roads to be added
+    roads: list[Road] = []
+
+    # Add bottom right curve
+    roads.append(bottomRightCurvedRoad(tileSize, p * tileSize, curveArcOffset))
+
+    # Points to be added
+    points: list[Vector2] = []
+
+    # TODO: Calculate points around curve
+
+    return roads, points
+
+# Defines the callback for when the rule for a bottom left corner is met
+def ruleBottomLeftCorner(
+    p: Vector2,
+    tileSize: float,
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    print('Found bottom left corner')
+    # Roads to be added
+    roads: list[Road] = []
+
+    # Add bottom left curve
+    roads.append(bottomLeftCurvedRoad(tileSize, p * tileSize, curveArcOffset))
+
+    # Points to be added
+    points: list[Vector2] = []
+
+    # TODO: Calculate points around curve
+
+    return roads, points
+
+rules = {
+    '11\n'
+    '10': ruleTopRightCorner,
+
+    '11\n'
+    '01': ruleTopLeftCorner,
+
+    '01\n'
+    '11': ruleBottomLeftCorner,
+
+    '10\n'
+    '11': ruleBottomRightCorner,
+}
+
 
 class ShortPathAlgorithmApp(PygameApp):
-    def __init__(self, width: int, height: int, fps: float = 60) -> None:
+    def __init__(self, width: int, height: int, fps: float = 60, roadMapFilePath: str | None = None) -> None:
         super().__init__(width, height, fps)
 
         self.startNodeIndex: int | None = None
@@ -20,29 +116,85 @@ class ShortPathAlgorithmApp(PygameApp):
         self.graph: dict[str, list[Vector2]] = {}
         self.path = None
 
-        # Hardcoded points
-        self.points.append(Vector2(50, 80))
-        self.points.append(Vector2(100, 240))
-        self.points.append(Vector2(300, 400))
-        self.points.append(Vector2(30, 550))
-        self.points.append(Vector2(550, 500))
-        self.points.append(Vector2(500, 300))
-        self.points.append(Vector2(360, 50))
-        self.generateLinearGraph(self.points)
+        self.loadRoadMap(roadMapFilePath)
 
-        # Generate other-way points
-        newPoints = []
-        newPoints.append(Vector2(80, 110))
-        newPoints.append(Vector2(135, 220))
-        newPoints.append(Vector2(345, 395))
-        newPoints.append(Vector2(130, 520))
-        newPoints.append(Vector2(515, 475))
-        newPoints.append(Vector2(455, 315))
-        newPoints.append(Vector2(350, 90))
+    def loadRoadMap(self, filePath: str) -> None:
+        roadLines: list[RoadLine] = []
+        with open(filePath, "r") as f:
+            lst = json.load(f)
+            for obj in lst:
+                # Multiply all coordinates by 2 to create between-tile spacing
+                roadLines.append(RoadLine(
+                    Vector2(
+                        obj["start"]["x"] * 2,
+                        obj["start"]["y"] * 2,
+                    ),
+                    Vector2(
+                        obj["end"]["x"] * 2,
+                        obj["end"]["y"] * 2,
+                    ),
+                ))
 
-        newPoints.reverse()
-        self.generateLinearGraph(newPoints)
-        self.points.extend(newPoints)
+        # TODO: What to do after loading road lines from JSON:
+        # - Get road full path by traversing through road connections (start to end, or end to start)
+        # - Get curve points by checking angle difference between points
+        # - Generate points for both left and right ways on each curve's start/end points
+        # - Generate points graph to be able to use A* algorithm for path generation
+        minX = minY = 1e10
+        maxX = maxY = -1e10
+        for roadLine in roadLines:
+            minX = min(minX, roadLine.start.x, roadLine.end.x)
+            minY = min(minY, roadLine.start.y, roadLine.end.y)
+            maxX = max(maxX, roadLine.start.x, roadLine.end.x)
+            maxY = max(maxY, roadLine.start.y, roadLine.end.y)
+        minX = int(minX)
+        minY = int(minY)
+        maxX = int(maxX)
+        maxY = int(maxY)
+        sizeX = maxX - minX + 1
+        sizeY = maxY - minY  +1
+        print('Size:', sizeX, sizeY)
+
+        self.tiles = [[0] * sizeX for _ in range(sizeY)]
+
+        # TODO: Maybe this could be optimized
+        for j in range(sizeY):
+            for i in range(sizeX):
+                p = Vector2(i + minX, j + minY)
+                for line in roadLines:
+                    if line.contains(p):
+                        self.tiles[j][i] = 1
+
+        for line in self.tiles:
+            for tile in line:
+                print(("█" if tile == 1 else ' ') * 2, end='')
+            print()
+
+        # TODO: Run loops to identify curves and calculate node points
+        for rule, callback in rules.items():
+            lines = rule.split("\n")
+            sy = len(lines)
+            sx = len(lines[0])
+
+            for y in range(sizeY - sy + 1):
+                for x in range(sizeX - sx + 1):
+                    valid = True
+                    for j in range(sy):
+                        ruleLine = lines[j]
+                        for i in range(sx):
+                            ruleTile = ruleLine[i]
+                            if str(self.tiles[y + j][x + i]) != ruleTile:
+                                valid = False
+                                break
+                        if not valid:
+                            break
+
+                    if valid:
+                        # TODO: These are hardcoded values
+                        roads, points = callback(Vector2(x, y), 110, 45)
+                        print(f'Got a valid one at pos ({x}, {y})')
+                        print(roads)
+                        print(points)
 
     def generateLinearGraph(self, points: list[Vector2]) -> None:
         if len(self.points) == 0:
@@ -91,10 +243,6 @@ class ShortPathAlgorithmApp(PygameApp):
 
     def onUpdate(self, dt: float) -> None:
         self.window.fill(BLACK)
-
-        self.newPath()
-        if self.path == None:
-            print("Error creating path")
 
         if self.startNodeIndex != None and self.endNodeIndex != None:
             utils.drawArrow(

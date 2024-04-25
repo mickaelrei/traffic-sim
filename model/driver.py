@@ -32,6 +32,18 @@ class Driver:
         # Driver's current node index in path
         self.pathNodeIndex = initialPathNodeIndex
 
+    # Driver will never use both brake and accelerate pedals at the same time
+    def setBrakeAmount(self, amount: float) -> None:
+        # No acceleration
+        self.car.setAccelerationAmount(0)
+        self.car.setBrakeAmount(amount)
+
+    # Driver will never use both brake and accelerate pedals at the same time
+    def setAccelerationAmount(self, amount: float) -> None:
+        # No braking
+        self.car.setBrakeAmount(0)
+        self.car.setAccelerationAmount(amount)
+
     def update(self, dt: float, drivers: list[Driver]) -> None:
         # TODO: Set car stats based on info such as:
         # - Cars in front
@@ -43,11 +55,6 @@ class Driver:
         if not update:
             self.car.update(dt)
             return
-
-        # Reset stats
-        self.car.setBrakeAmount(0)
-        self.car.setAccelerationAmount(0)
-        self.car.setSteering(0)
 
         # Check path status
         self.traversePath()
@@ -75,9 +82,9 @@ class Driver:
 
     def adjustToAppropriateSpeed(self) -> None:
         if self.car.velocity < self.appropriateVelocity:
-            self.car.setAccelerationAmount(0.5)
+            self.setAccelerationAmount(0.5)
         else:
-            self.car.setBrakeAmount(0.5)
+            self.setBrakeAmount(0.5)
 
     def checkCarCollisions(self, drivers: list[Driver]) -> None:
         myCar = self.car
@@ -148,8 +155,8 @@ class Driver:
                 if actualDistance < 40 and otherCar.velocity != 0 and self.appropriateVelocity / otherCar.velocity > 1:
                     # Brake based on how close from the other car we are
                     # The closer, the more is needed to brake
-                    myCar.setBrakeAmount((40 - actualDistance) / 250)
-                    myCar.setAccelerationAmount(0)
+                    self.setBrakeAmount((40 - actualDistance) / 250)
+                    self.setAccelerationAmount(0)
             else:
                 # Interpolate appropriate velocity towards desired velocity
                 self.appropriateVelocity = utils.lerp(

@@ -155,8 +155,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # main()
 
-    # from view.short_path_algo import ShortPathAlgorithmApp
-    # app = ShortPathAlgorithmApp(600, 600, 60)
-    # app.run()
+    from view.short_path_algo import ShortPathAlgorithmApp
+    app = ShortPathAlgorithmApp(600, 600, 60, "./road_maps/y.json")
+    app.run()

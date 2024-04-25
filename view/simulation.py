@@ -451,12 +451,6 @@ class TrafficSimulationApp(PygameApp):
                     if line.contains(p):
                         tiles[j][i] = 1
 
-        print('\nRoad map loaded:\n')
-        for line in tiles:
-            for tile in line:
-                print(("█" if tile == 1 else ' ') * 2, end='')
-            print()
-
         # TODO: Run loops to identify curves and calculate node points
 
     def onEvent(self, event: Event) -> None:
