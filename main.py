@@ -42,14 +42,14 @@ def runSimulationApp() -> None:
 
     print("\nAvailable maps:")
     for i, file in enumerate(files):
-        print(f"[{i}] {file}")
+        print(f"[{i + 1}] {file}")
 
     # Check what map the user wants to use
     print("\nChoose map by number:")
     index = input("> ").strip()
     try:
         index = int(index)
-        if index < 0 or index >= len(files):
+        if index <= 0 or index > len(files):
             print("\nInvalid number")
             return
     except ValueError:
@@ -62,7 +62,7 @@ def runSimulationApp() -> None:
         600,
         600,
         60,
-        roadMapFilePath=f"./road_maps/{files[index]}.json",
+        roadMapFilePath=f"./road_maps/{files[index - 1]}.json",
     )
     app.run()
 
@@ -107,12 +107,64 @@ def runMapEditorApp() -> None:
     with open(f"./road_maps/{name}.json", "w") as f:
         json.dump(jsonLines, f, indent=4)
 
+# Runs a map loader with the selected map
+def runMapLoadingTestApp() -> None:
+    # List all available maps
+    files = os.listdir("./road_maps")
+    if len(files) == 0:
+        print(
+            "[WARNING]: No road map files found on default folder "
+            "\"traffic-sim/road_maps\". Create one with the"
+            " editor and save it to a file to use it on a simulation",
+        )
+        return
+
+    # Filter files
+    for i in range(len(files) - 1, -1, -1):
+        file = files[i]
+        if len(file) < 5:
+            # Not enough length for .json extension
+            files.remove(file)
+
+        # Check for json extension
+        if file[-5:].lower() != ".json":
+            # No json extension
+            files.remove(file)
+
+        # Valid json, remove extension
+        files[i] = file[:-5]
+
+    print("\nAvailable maps:")
+    for i, file in enumerate(files):
+        print(f"[{i + 1}] {file}")
+
+    # Check what map the user wants to use
+    print("\nChoose map by number:")
+    index = input("> ").strip()
+    try:
+        index = int(index)
+        if index <= 0 or index > len(files):
+            print("\nInvalid number")
+            return
+    except ValueError:
+        return
+
+    from view.short_path_algo import ShortPathAlgorithmApp
+
+    app = ShortPathAlgorithmApp(
+        600,
+        600,
+        60,
+        roadMapFilePath=f"./road_maps/{files[index - 1]}.json",
+    )
+    app.run()
 
 def handleOption(option: int) -> None:
     # List of options
     optionsList = [
         runSimulationApp,
         runMapEditorApp,
+        runMapLoadingTestApp,
     ]
 
     # Check if option is valid
@@ -134,6 +186,7 @@ def main() -> None:
     print("Choose an option:")
     print("[1] Run simulation")
     print("[2] Open map editor")
+    print("[3] Run map loading test")
     print("[0] Quit\n")
 
     # Get user option input
@@ -143,10 +196,9 @@ def main() -> None:
         return
 
     # Handle input
-    option = res[0]
     optionInt = 0
     try:
-        optionInt = int(option)
+        optionInt = int(res)
     except ValueError:
         pass
 
@@ -155,8 +207,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # main()
+    main()
 
-    from view.short_path_algo import ShortPathAlgorithmApp
-    app = ShortPathAlgorithmApp(600, 600, 60, "./road_maps/y.json")
-    app.run()
+    # from view.short_path_algo import ShortPathAlgorithmApp
+    # app = ShortPathAlgorithmApp(600, 600, 60, "./road_maps/y.json")
+    # app.run()

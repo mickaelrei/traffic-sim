@@ -5,23 +5,237 @@ import json
 from pygame.event import Event
 from pygame.math import Vector2
 from model.app import PygameApp
-from model.road import Road, RoadLine, topRightCurvedRoad, topLeftCurvedRoad, bottomRightCurvedRoad, bottomLeftCurvedRoad
+from model.road import Road, RoadLine, StraightRoad, topRightCurvedRoad, topLeftCurvedRoad, bottomRightCurvedRoad, bottomLeftCurvedRoad
 from random import randint
 
-BLACK = (0, 0, 0)
+# Value for an empty tile
+TILE_EMPTY = 0
 
-# Defines the callback for when the rule for a top right corner is met
-def ruleTopRightCorner(
-    p: Vector2,
+# Value for a tile meant for a road, not storing anything yet
+TILE_ROAD = 1
+
+# Value for a tile storing a straight road
+TILE_STRAIGHT_ROAD = 3
+
+# Value for a tile storing a curved road
+TILE_CURVED_ROAD = 2
+
+# Defines the callback for all rules in a 1x2 grid
+def rule1x2(
+    topLeft: Vector2,
+    tileMap: list[list[int]],
+    mapSize: Vector2,
     tileSize: float,
     curveArcOffset: float,
 ) -> tuple[list[Road], list[Vector2]]:
-    print('Found top right corner')
+    # Possibilities in a 1x2 grid:
+    # - Straight horizontal road on top
+    #   [1]
+    #   [0]
+    #
+    # - Straight horizontal road on bottom
+    #   [0]
+    #   [1]
+
+
+    # Convert data grid to number
+    y = int(topLeft.y)
+    x = int(topLeft.x)
+    dataNumber = tileMap[y][x] * 10 + tileMap[y + 1][x]
+
+    # Check number match
+    match dataNumber:
+        case 10:
+            # Set tilemap value so other rules won't apply to this tile
+            tileMap[y][x] = TILE_STRAIGHT_ROAD
+
+            # Check if tiles to left/right are curves
+            leftOffset = 0
+            if x > 0 and tileMap[y][x - 1] == TILE_CURVED_ROAD:
+                leftOffset = curveArcOffset
+            rightOffset = 0
+            if x < mapSize.x - 1 and tileMap[y][x + 1] == TILE_CURVED_ROAD:
+                rightOffset = -curveArcOffset
+
+            return ruleStraightHorizontalRoad(topLeft, tileSize, leftOffset, rightOffset)
+        case 1:
+            tileMap[y + 1][x] = TILE_STRAIGHT_ROAD
+
+            # Check if tiles to left/right are curves
+            leftOffset = 0
+            if x > 0 and tileMap[y + 1][x - 1] == TILE_CURVED_ROAD:
+                leftOffset = curveArcOffset
+            rightOffset = 0
+            if x < mapSize.x - 1 and tileMap[y + 1][x + 1] == TILE_CURVED_ROAD:
+                rightOffset = -curveArcOffset
+
+            return ruleStraightHorizontalRoad(topLeft + Vector2(0, 1), tileSize, leftOffset, rightOffset)
+
+    # If no matches, return empty lists
+    return [], []
+
+# Defines the callback for all rules in a 2x1 grid
+def rule2x1(
+    topLeft: Vector2,
+    tileMap: list[list[int]],
+    mapSize: Vector2,
+    tileSize: float,
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    # Possibilities in a 1x2 grid:
+    # - Straight vertical road on left
+    #   [10]
+    #
+    # - Straight vertical road on right
+    #   [01]
+    
+    # Convert data grid to number
+    y = int(topLeft.y)
+    x = int(topLeft.x)
+    dataNumber = tileMap[y][x] * 10 + tileMap[y][x + 1]
+
+    # Check number match
+    match dataNumber:
+        case 10:
+            # Set tilemap value so other rules won't apply to this tile
+            tileMap[y][x] = TILE_STRAIGHT_ROAD
+
+            # Check if tiles on top/bottom are curves
+            topOffset = 0
+            if y > 0 and tileMap[y - 1][x] == TILE_CURVED_ROAD:
+                topOffset = curveArcOffset
+            bottomOffset = 0
+            if y < mapSize.y - 1 and tileMap[y + 1][x] == TILE_CURVED_ROAD:
+                bottomOffset = -curveArcOffset
+
+            return ruleStraightVerticalRoad(topLeft, tileSize, topOffset, bottomOffset)
+        case 1:
+            tileMap[y][x + 1] = TILE_STRAIGHT_ROAD
+
+            # Check if tiles on top/bottom are curves
+            topOffset = 0
+            if y > 0 and tileMap[y - 1][x + 1] == TILE_CURVED_ROAD:
+                topOffset = curveArcOffset
+            bottomOffset = 0
+            if y < mapSize.y - 1 and tileMap[y + 1][x + 1] == TILE_CURVED_ROAD:
+                bottomOffset = -curveArcOffset
+
+            return ruleStraightVerticalRoad(topLeft + Vector2(1, 0), tileSize, topOffset, bottomOffset)
+        
+    # If no matches, return empty lists
+    return [], []
+
+# Defines the callback for all rules in a 2x2 grid
+def rule2x2(
+    topLeft: Vector2,
+    tileMap: list[list[int]],
+    mapSize: Vector2,
+    tileSize: float,
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    # Possibilities in a 2x2 grid:
+    # - Top right corner
+    #   [11]
+    #   [10]
+    #
+    # - Top left corner
+    #   [11]
+    #   [01]
+    #
+    # - Bottom right corner
+    #   [10]
+    #   [11]
+    #
+    # - Bottom left corner
+    #   [01]
+    #   [11]
+
+    # Convert data grid to number
+    y = int(topLeft.y)
+    x = int(topLeft.x)
+    dataNumber = (
+        tileMap[y][x] * 1000
+        + tileMap[y][x + 1] * 100
+        + tileMap[y + 1][x] * 10
+        + tileMap[y + 1][x + 1]
+    )
+
+    # Check number match
+    match dataNumber:
+        case 1110:
+            # Set tilemap value so other rules won't apply to this tile
+            tileMap[y][x] = TILE_CURVED_ROAD
+            return ruleTopRightCorner(topLeft, tileSize, curveArcOffset)
+        case 1101:
+            tileMap[y][x + 1] = TILE_CURVED_ROAD
+            return ruleTopLeftCorner(topLeft, tileSize, curveArcOffset)
+        case 1011:
+            tileMap[y + 1][x] = TILE_CURVED_ROAD
+            return ruleBottomRightCorner(topLeft, tileSize, curveArcOffset)
+        case 111:
+            tileMap[y + 1][x + 1] = TILE_CURVED_ROAD
+            return ruleBottomLeftCorner(topLeft, tileSize, curveArcOffset)
+        
+    # If no matches, return empty lists
+    return [], []
+
+def ruleStraightHorizontalRoad(
+    topLeft: Vector2,
+    tileSize: float,
+    leftOffset: float = 0,
+    rightOffset: float = 0,
+) -> tuple[list[Road], list[Vector2]]:
+    # Roads to be added
+    roads: list[Road] = []
+
+    # Add straight horizontal road
+    roads.append(StraightRoad(
+        tileSize,
+        (topLeft - Vector2(0.5, 0)) * tileSize + Vector2(leftOffset, 0),
+        (topLeft + Vector2(0.5, 0)) * tileSize + Vector2(rightOffset, 0),
+    ))
+
+    # Points to be added
+    points: list[Vector2] = []
+
+    # TODO: Calculate points (if any)
+
+    return roads, points
+
+def ruleStraightVerticalRoad(
+    topLeft: Vector2,
+    tileSize: float,
+    topOffset: float = 0,
+    bottomOffset: float = 0,
+) -> tuple[list[Road], list[Vector2]]:
+    # Roads to be added
+    roads: list[Road] = []
+
+    # Add straight vertical road
+    roads.append(StraightRoad(
+        tileSize,
+        (topLeft - Vector2(0, 0.5)) * tileSize + Vector2(0, topOffset),
+        (topLeft + Vector2(0, 0.5)) * tileSize + Vector2(0, bottomOffset),
+    ))
+
+    # Points to be added
+    points: list[Vector2] = []
+
+    # TODO: Calculate points (if any)
+
+    return roads, points
+
+# Defines the callback for when the rule for a top right corner is met
+def ruleTopRightCorner(
+    topLeft: Vector2,
+    tileSize: float,
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
     # Roads to be added
     roads: list[Road] = []
 
     # Add top right curve
-    roads.append(topRightCurvedRoad(tileSize, p * tileSize, curveArcOffset))
+    roads.append(topRightCurvedRoad(tileSize, topLeft * tileSize, curveArcOffset))
 
     # Points to be added
     points: list[Vector2] = []
@@ -32,16 +246,16 @@ def ruleTopRightCorner(
 
 # Defines the callback for when the rule for a top left corner is met
 def ruleTopLeftCorner(
-    p: Vector2,
+    topLeft: Vector2,
     tileSize: float,
     curveArcOffset: float,
 ) -> tuple[list[Road], list[Vector2]]:
-    print('Found top left corner')
     # Roads to be added
     roads: list[Road] = []
 
     # Add top left curve
-    roads.append(topLeftCurvedRoad(tileSize, p * tileSize, curveArcOffset))
+    roadCenter = topLeft + Vector2(1, 0)
+    roads.append(topLeftCurvedRoad(tileSize, roadCenter * tileSize, curveArcOffset))
 
     # Points to be added
     points: list[Vector2] = []
@@ -52,16 +266,16 @@ def ruleTopLeftCorner(
 
 # Defines the callback for when the rule for a bottom right corner is met
 def ruleBottomRightCorner(
-    p: Vector2,
+    topLeft: Vector2,
     tileSize: float,
     curveArcOffset: float,
 ) -> tuple[list[Road], list[Vector2]]:
-    print('Found bottom right corner')
     # Roads to be added
     roads: list[Road] = []
 
     # Add bottom right curve
-    roads.append(bottomRightCurvedRoad(tileSize, p * tileSize, curveArcOffset))
+    roadCenter = topLeft + Vector2(0, 1)
+    roads.append(bottomRightCurvedRoad(tileSize, roadCenter * tileSize, curveArcOffset))
 
     # Points to be added
     points: list[Vector2] = []
@@ -72,16 +286,16 @@ def ruleBottomRightCorner(
 
 # Defines the callback for when the rule for a bottom left corner is met
 def ruleBottomLeftCorner(
-    p: Vector2,
+    topLeft: Vector2,
     tileSize: float,
     curveArcOffset: float,
 ) -> tuple[list[Road], list[Vector2]]:
-    print('Found bottom left corner')
     # Roads to be added
     roads: list[Road] = []
 
     # Add bottom left curve
-    roads.append(bottomLeftCurvedRoad(tileSize, p * tileSize, curveArcOffset))
+    roadCenter = topLeft + Vector2(1, 1)
+    roads.append(bottomLeftCurvedRoad(tileSize, roadCenter * tileSize, curveArcOffset))
 
     # Points to be added
     points: list[Vector2] = []
@@ -90,27 +304,25 @@ def ruleBottomLeftCorner(
 
     return roads, points
 
+# List of rules for creating roads based on a tilemap
 rules = {
-    '11\n'
-    '10': ruleTopRightCorner,
-
-    '11\n'
-    '01': ruleTopLeftCorner,
-
-    '01\n'
-    '11': ruleBottomLeftCorner,
-
-    '10\n'
-    '11': ruleBottomRightCorner,
+    '2|2': rule2x2,
+    '1|2': rule1x2,
+    '2|1': rule2x1,
 }
 
-
+# App for testing path algorithm and map loading
 class ShortPathAlgorithmApp(PygameApp):
     def __init__(self, width: int, height: int, fps: float = 60, roadMapFilePath: str | None = None) -> None:
         super().__init__(width, height, fps)
 
         self.startNodeIndex: int | None = None
         self.endNodeIndex: int | None = None
+
+        self.leftMouseButtonDown = False
+        self.cameraOffset = Vector2(0, 0)
+
+        self.roads: list[Road] = []
 
         self.points: list[Vector2] = []
         self.graph: dict[str, list[Vector2]] = {}
@@ -153,7 +365,7 @@ class ShortPathAlgorithmApp(PygameApp):
         maxY = int(maxY)
         sizeX = maxX - minX + 1
         sizeY = maxY - minY  +1
-        print('Size:', sizeX, sizeY)
+        size = Vector2(sizeX, sizeY)
 
         self.tiles = [[0] * sizeX for _ in range(sizeY)]
 
@@ -170,31 +382,24 @@ class ShortPathAlgorithmApp(PygameApp):
                 print(("█" if tile == 1 else ' ') * 2, end='')
             print()
 
-        # TODO: Run loops to identify curves and calculate node points
+        # Check rules to identify curves and calculate node points
         for rule, callback in rules.items():
-            lines = rule.split("\n")
-            sy = len(lines)
-            sx = len(lines[0])
+            print(f"Applying rule {rule}")
+            lines = rule.split("|")
+            sx = int(lines[0])
+            sy = int(lines[1])
 
             for y in range(sizeY - sy + 1):
                 for x in range(sizeX - sx + 1):
-                    valid = True
-                    for j in range(sy):
-                        ruleLine = lines[j]
-                        for i in range(sx):
-                            ruleTile = ruleLine[i]
-                            if str(self.tiles[y + j][x + i]) != ruleTile:
-                                valid = False
-                                break
-                        if not valid:
-                            break
+                    # Get new possible roads and points
+                    roads, points = callback(Vector2(x, y), self.tiles, size, 110, 45)
+                    self.roads.extend(roads)
+                    self.points.extend(points)
 
-                    if valid:
-                        # TODO: These are hardcoded values
-                        roads, points = callback(Vector2(x, y), 110, 45)
-                        print(f'Got a valid one at pos ({x}, {y})')
-                        print(roads)
-                        print(points)
+        for line in self.tiles:
+            for tile in line:
+                print(str(tile) + " ", end='')
+            print()
 
     def generateLinearGraph(self, points: list[Vector2]) -> None:
         if len(self.points) == 0:
@@ -240,26 +445,38 @@ class ShortPathAlgorithmApp(PygameApp):
                 self.running = False
             elif event.key == pygame.K_e:
                 self.newPath()
+            # Check for mouse motion
+        elif event.type == pygame.MOUSEMOTION and self.leftMouseButtonDown:
+            self.cameraOffset += Vector2(event.rel)
 
     def onUpdate(self, dt: float) -> None:
-        self.window.fill(BLACK)
+        left, middle, right = pygame.mouse.get_pressed(3)
+        self.leftMouseButtonDown = left
 
-        if self.startNodeIndex != None and self.endNodeIndex != None:
-            utils.drawArrow(
-                self.window, self.points[self.startNodeIndex], self.points[self.endNodeIndex], (255, 255, 255))
+        self.window.fill((0, 0, 0))
 
-        for v, neighbors in self.graph.items():
-            x, y = v.split("|")
-            p = Vector2(int(x), int(y))
-            for neighbor in neighbors:
-                utils.drawArrow(self.window, p, neighbor, (0, 0, 255))
+        for road in self.roads:
+            road.draw(self.window, offset=self.cameraOffset)
 
-        for i, point in enumerate(self.points):
-            pygame.draw.circle(self.window, (255, 0, 0), point, 18, 2)
-            utils.drawText(self.window, f"{i}", point, fontSize=13)
+        for point in self.points:
+            pygame.draw.circle(self.window, (255, 127, 0), point + self.cameraOffset, 15)
 
-        if self.path != None:
-            for i in range(len(self.path) - 1):
-                p0 = self.path[i]
-                p1 = self.path[i + 1]
-                utils.drawArrow(self.window, p0, p1, (255, 0, 127))
+        # if self.startNodeIndex != None and self.endNodeIndex != None:
+        #     utils.drawArrow(
+        #         self.window, self.points[self.startNodeIndex], self.points[self.endNodeIndex], (255, 255, 255))
+
+        # for v, neighbors in self.graph.items():
+        #     x, y = v.split("|")
+        #     p = Vector2(int(x), int(y))
+        #     for neighbor in neighbors:
+        #         utils.drawArrow(self.window, p, neighbor, (0, 0, 255))
+
+        # for i, point in enumerate(self.points):
+        #     pygame.draw.circle(self.window, (255, 0, 0), point, 18, 2)
+        #     utils.drawText(self.window, f"{i}", point, fontSize=13)
+
+        # if self.path != None:
+        #     for i in range(len(self.path) - 1):
+        #         p0 = self.path[i]
+        #         p1 = self.path[i + 1]
+        #         utils.drawArrow(self.window, p0, p1, (255, 0, 127))
