@@ -6,7 +6,7 @@ import json
 from pygame.event import Event
 from pygame.math import Vector2
 from model.app import PygameApp
-from model.road import Road, RoadLine, StraightRoad, topRightCurvedRoad, topLeftCurvedRoad, bottomRightCurvedRoad, bottomLeftCurvedRoad
+from model.road import Road, RoadLine, StraightRoad, Roundabout, topRightCurvedRoad, topLeftCurvedRoad, bottomRightCurvedRoad, bottomLeftCurvedRoad
 from random import randint
 
 # Value for an empty tile
@@ -15,11 +15,14 @@ TILE_EMPTY = 0
 # Value for a tile meant for a road, not storing anything yet
 TILE_ROAD = 1
 
+# Value for a tile storing a curved road
+TILE_CURVED_ROAD = 2
+
 # Value for a tile storing a straight road
 TILE_STRAIGHT_ROAD = 3
 
-# Value for a tile storing a curved road
-TILE_CURVED_ROAD = 2
+# Value for a tile storing a roundabout
+TILE_ROUNDABOUT_ROAD = 4
 
 # Defines the callback for all rules in a 1x2 grid
 def rule1x2(
@@ -180,6 +183,74 @@ def rule2x2(
             tileMap[y + 1][x + 1] = TILE_CURVED_ROAD
             return ruleBottomLeftCorner(topLeft, tileSize, nodesGraph, curveArcOffset)
         
+    # If no matches, return empty lists
+    return [], []
+
+# Defines the callback for all rules in a 5x5 grid
+def rule5x5(
+    topLeft: Vector2,
+    tileMap: list[list[int]],
+    nodesGraph: dict[str, list[Vector2]],
+    mapSize: Vector2,
+    tileSize: float,
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    # Possibilities in a 5x5 grid:
+    # - 4-point intersection
+    #   [00100]
+    #   [00100]
+    #   [11111]
+    #   [00100]
+    #   [00100]
+
+    # Convert data grid to string
+    y = int(topLeft.y)
+    x = int(topLeft.x)
+    dataNumber = (
+        f"{tileMap[y + 0][x + 0]}"
+        f"{tileMap[y + 0][x + 1]}"
+        f"{tileMap[y + 0][x + 2]}"
+        f"{tileMap[y + 0][x + 3]}"
+        f"{tileMap[y + 0][x + 4]}"
+        f"{tileMap[y + 1][x + 0]}"
+        f"{tileMap[y + 1][x + 1]}"
+        f"{tileMap[y + 1][x + 2]}"
+        f"{tileMap[y + 1][x + 3]}"
+        f"{tileMap[y + 1][x + 4]}"
+        f"{tileMap[y + 2][x + 0]}"
+        f"{tileMap[y + 2][x + 1]}"
+        f"{tileMap[y + 2][x + 2]}"
+        f"{tileMap[y + 2][x + 3]}"
+        f"{tileMap[y + 2][x + 4]}"
+        f"{tileMap[y + 3][x + 0]}"
+        f"{tileMap[y + 3][x + 1]}"
+        f"{tileMap[y + 3][x + 2]}"
+        f"{tileMap[y + 3][x + 3]}"
+        f"{tileMap[y + 3][x + 4]}"
+        f"{tileMap[y + 4][x + 0]}"
+        f"{tileMap[y + 4][x + 1]}"
+        f"{tileMap[y + 4][x + 2]}"
+        f"{tileMap[y + 4][x + 3]}"
+        f"{tileMap[y + 4][x + 4]}"
+    )
+
+    # Check number match
+    match dataNumber:
+        case "0010000100111110010000100":
+            # Set tilemap value so other rules won't apply to this tile
+            tileMap[y + 0][x + 2] = TILE_ROUNDABOUT_ROAD
+            tileMap[y + 1][x + 2] = TILE_ROUNDABOUT_ROAD
+            tileMap[y + 2][x + 2] = TILE_ROUNDABOUT_ROAD
+            tileMap[y + 3][x + 2] = TILE_ROUNDABOUT_ROAD
+            tileMap[y + 4][x + 2] = TILE_ROUNDABOUT_ROAD
+
+            tileMap[y + 2][x + 0] = TILE_ROUNDABOUT_ROAD
+            tileMap[y + 2][x + 1] = TILE_ROUNDABOUT_ROAD
+            tileMap[y + 2][x + 2] = TILE_ROUNDABOUT_ROAD
+            tileMap[y + 2][x + 3] = TILE_ROUNDABOUT_ROAD
+            tileMap[y + 2][x + 4] = TILE_ROUNDABOUT_ROAD
+            return rule4pointIntersection(topLeft, tileSize, nodesGraph, curveArcOffset)
+
     # If no matches, return empty lists
     return [], []
 
@@ -389,11 +460,108 @@ def ruleBottomLeftCorner(
 
     return roads, points
 
+# Defines the callback for when the rule for a 4-point intersection is met
+def rule4pointIntersection(
+    topLeft: Vector2,
+    tileSize: float,
+    nodesGraph: dict[str, list[Vector2]],
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    # Roads to be added
+    roads: list[Road] = []
+
+    # Add bottom left curve
+    roadCenter = topLeft + Vector2(2, 2)
+    roads.append(Roundabout(tileSize, roadCenter * tileSize, True, True, True, True))
+
+    # Add straight roads
+    # Left
+    leftCenter = roadCenter + Vector2(-2, 0)
+    roads.append(StraightRoad(tileSize, (leftCenter - Vector2(0.5, 0)) * tileSize, (leftCenter + Vector2(0.5, 0)) * tileSize))
+    # Right
+    rightCenter = roadCenter + Vector2(2, 0)
+    roads.append(StraightRoad(tileSize, (rightCenter - Vector2(0.5, 0)) * tileSize, (rightCenter + Vector2(0.5, 0)) * tileSize))
+    # Top
+    topCenter = roadCenter + Vector2(0, -2)
+    roads.append(StraightRoad(tileSize, (topCenter - Vector2(0, 0.5)) * tileSize, (topCenter + Vector2(0, 0.5)) * tileSize))
+    # Bottom
+    bottomCenter = roadCenter + Vector2(0, 2)
+    roads.append(StraightRoad(tileSize, (bottomCenter - Vector2(0, 0.5)) * tileSize, (bottomCenter + Vector2(0, 0.5)) * tileSize))
+
+    # Points to be added
+    points: list[Vector2] = []
+
+    # Angles (in terms of pi) in which the roundabout will have nodes
+    angles = [1.85, 1.65, 1.35, 1.15, 0.85, 0.65, 0.35, 0.15]
+    dist = 5 * tileSize / 4
+    numSteps = 4
+    step = 1 / numSteps
+    for i in range(0, len(angles) - 1, 2):
+        angle0 = angles[i] * math.pi
+        angle1 = angles[i + 1] * math.pi
+        for s in range(numSteps):
+            t = s * step
+            angle = angle0 + (angle1 - angle0) * t
+            points.append(roadCenter * tileSize + Vector2(math.cos(angle), math.sin(angle)) * dist)
+
+    # Set graph connections inside roundabout
+    pointsInside = len(points)
+    for i in range(pointsInside):
+        nodesGraph[utils.vecToStr(points[i])] = [points[(i + 1) % len(points)]]
+
+    # Add points on straight roads pointing inside roundabout
+    points.append((leftCenter + Vector2(0.5, -0.25)) * tileSize)
+    points.append((leftCenter + Vector2(0.5, 0.25)) * tileSize)
+    points.append((bottomCenter + Vector2(-0.25, -0.5)) * tileSize)
+    points.append((bottomCenter + Vector2(0.25, -0.5)) * tileSize)
+    points.append((rightCenter + Vector2(-0.5, 0.25)) * tileSize)
+    points.append((rightCenter + Vector2(-0.5, -0.25)) * tileSize)
+    points.append((topCenter + Vector2(0.25, 0.5)) * tileSize)
+    points.append((topCenter + Vector2(-0.25, 0.5)) * tileSize)
+
+    # Add points on straight roads pointing out
+    points.append((leftCenter + Vector2(-0.5, -0.25)) * tileSize)
+    points.append((leftCenter + Vector2(-0.5, 0.25)) * tileSize)
+    points.append((bottomCenter + Vector2(-0.25, 0.5)) * tileSize)
+    points.append((bottomCenter + Vector2(0.25, 0.5)) * tileSize)
+    points.append((rightCenter + Vector2(0.5, 0.25)) * tileSize)
+    points.append((rightCenter + Vector2(0.5, -0.25)) * tileSize)
+    points.append((topCenter + Vector2(0.25, -0.5)) * tileSize)
+    points.append((topCenter + Vector2(-0.25, -0.5)) * tileSize)
+
+    # Connections from outside to inside
+    nodesGraph[utils.vecToStr(points[pointsInside + 1])] = [points[numSteps * 2]]
+    nodesGraph[utils.vecToStr(points[pointsInside + 3])] = [points[numSteps * 3]]
+    nodesGraph[utils.vecToStr(points[pointsInside + 5])] = [points[numSteps * 0]]
+    nodesGraph[utils.vecToStr(points[pointsInside + 7])] = [points[numSteps * 1]]
+
+    # Connections from inside to outside
+    nodesGraph[utils.vecToStr(points[numSteps * 1 - 1])].append(points[pointsInside + 6])
+    nodesGraph[utils.vecToStr(points[numSteps * 2 - 1])].append(points[pointsInside + 0])
+    nodesGraph[utils.vecToStr(points[numSteps * 3 - 1])].append(points[pointsInside + 2])
+    nodesGraph[utils.vecToStr(points[numSteps * 4 - 1])].append(points[pointsInside + 4])
+
+    # Remaining connections on straight roads' (start to end, roundabout to outside)
+    nodesGraph[utils.vecToStr(points[pointsInside + 0])] = [points[pointsInside + 8 + 0]]
+    nodesGraph[utils.vecToStr(points[pointsInside + 2])] = [points[pointsInside + 8 + 2]]
+    nodesGraph[utils.vecToStr(points[pointsInside + 4])] = [points[pointsInside + 8 + 4]]
+    nodesGraph[utils.vecToStr(points[pointsInside + 6])] = [points[pointsInside + 8 + 6]]
+
+    nodesGraph[utils.vecToStr(points[pointsInside + 8 + 1])] = [points[pointsInside + 1]]
+    nodesGraph[utils.vecToStr(points[pointsInside + 8 + 3])] = [points[pointsInside + 3]]
+    nodesGraph[utils.vecToStr(points[pointsInside + 8 + 5])] = [points[pointsInside + 5]]
+    nodesGraph[utils.vecToStr(points[pointsInside + 8 + 7])] = [points[pointsInside + 7]]
+
+    return roads, points
+
+
+
 # List of rules for creating roads based on a tilemap
 rules: list[tuple[str, Callable]] = [
     ('2|2', rule2x2),
     ('1|2', rule1x2),
     ('2|1', rule2x1),
+    ('5|5', rule5x5),
 ]
 
 # Sort rules
@@ -508,16 +676,9 @@ class ShortPathAlgorithmApp(PygameApp):
             start = randint(0, len(self.points) - 1)
         self.startNodeIndex = start
 
-        if start >= 7:
-            _min = 7
-            _max = len(self.points) - 1
-        else:
-            _min = 0
-            _max = 6
-
-        end = randint(_min, _max)
+        end = randint(0, len(self.points) - 1)
         while end == self.endNodeIndex or end == self.startNodeIndex:
-            end = randint(_min, _max)
+            end = randint(0, len(self.points) - 1)
         self.endNodeIndex = end
 
         startPoint = self.points[self.startNodeIndex]
@@ -550,6 +711,12 @@ class ShortPathAlgorithmApp(PygameApp):
 
         for point in self.points:
             pygame.draw.circle(self.window, (0, 127, 255), point + self.cameraOffset, 5, 2)
+
+        for node, connections in self.nodesGraph.items():
+            x, y = node.split("|")
+            start = Vector2(int(x), int(y))
+            for p in connections:
+                utils.drawArrow(self.window, start + self.cameraOffset, p + self.cameraOffset, (255, 0, 127), 2)
 
         if self.path != None:
             pygame.draw.circle(self.window, (0, 255, 0), self.points[self.startNodeIndex] + self.cameraOffset, 25)

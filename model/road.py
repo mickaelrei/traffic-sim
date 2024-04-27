@@ -214,6 +214,7 @@ class Roundabout(Road):
         connectBottom: bool = False,
         connectLeft: bool = False,
         connectRight: bool = False,
+        curveArcOffset: float = 0,
     ) -> None:
         super().__init__(width)
         self.center = center
@@ -221,6 +222,9 @@ class Roundabout(Road):
         self.connectTop = connectTop
         self.connectLeft = connectLeft
         self.connectRight = connectRight
+
+        # How much bigger is the roundabout
+        self.sizeMult = 1.5
 
     def draw(
         self,
@@ -231,12 +235,10 @@ class Roundabout(Road):
         # Roundabout outwards arc offset
         arcOffset = self.width / 10
 
-        # How much bigger is the roundabout
-        sizeMult = 2
-        size = Vector2(self.width * sizeMult)
+        size = Vector2(self.width * self.sizeMult)
 
         # Quarter arc angle offset based on road width, to adjust connection to other roads
-        offsetAngle = math.asin((self.width / 2 + arcOffset) / (self.width * sizeMult))
+        offsetAngle = math.asin((self.width / 2 + arcOffset) / (self.width * self.sizeMult))
 
         # Top left arc
         # ------------
@@ -264,7 +266,7 @@ class Roundabout(Road):
                 offset
                 + self.center
                 + Vector2(-arcOffset, 0)
-                + utils.directionVector(startAngle) * self.width * sizeMult,
+                + utils.directionVector(startAngle) * self.width * self.sizeMult,
                 Vector2(arcOffset),
                 0,
                 math.pi / 2,
@@ -278,7 +280,7 @@ class Roundabout(Road):
                 offset
                 + self.center
                 + Vector2(0, -arcOffset)
-                + utils.directionVector(endAngle) * self.width * sizeMult,
+                + utils.directionVector(endAngle) * self.width * self.sizeMult,
                 Vector2(arcOffset),
                 0,
                 math.pi / 2,
@@ -311,7 +313,7 @@ class Roundabout(Road):
                 offset
                 + self.center
                 + Vector2(0, arcOffset)
-                + utils.directionVector(startAngle) * self.width * sizeMult,
+                + utils.directionVector(startAngle) * self.width * self.sizeMult,
                 Vector2(arcOffset),
                 3 * math.pi / 2,
                 0,
@@ -325,7 +327,7 @@ class Roundabout(Road):
                 offset
                 + self.center
                 + Vector2(-arcOffset, 0)
-                + utils.directionVector(endAngle) * self.width * sizeMult,
+                + utils.directionVector(endAngle) * self.width * self.sizeMult,
                 Vector2(arcOffset),
                 3 * math.pi / 2,
                 0,
@@ -358,7 +360,7 @@ class Roundabout(Road):
                 offset
                 + self.center
                 + Vector2(arcOffset, 0)
-                + utils.directionVector(startAngle) * self.width * sizeMult,
+                + utils.directionVector(startAngle) * self.width * self.sizeMult,
                 Vector2(arcOffset),
                 math.pi,
                 3 * math.pi / 2,
@@ -372,7 +374,7 @@ class Roundabout(Road):
                 offset
                 + self.center
                 + Vector2(0, arcOffset)
-                + utils.directionVector(endAngle) * self.width * sizeMult,
+                + utils.directionVector(endAngle) * self.width * self.sizeMult,
                 Vector2(arcOffset),
                 math.pi,
                 3 * math.pi / 2,
@@ -405,7 +407,7 @@ class Roundabout(Road):
                 offset
                 + self.center
                 + Vector2(0, -arcOffset)
-                + utils.directionVector(startAngle) * self.width * sizeMult,
+                + utils.directionVector(startAngle) * self.width * self.sizeMult,
                 Vector2(arcOffset),
                 math.pi / 2,
                 math.pi,
@@ -419,7 +421,7 @@ class Roundabout(Road):
                 offset
                 + self.center
                 + Vector2(arcOffset, 0)
-                + utils.directionVector(endAngle) * self.width * sizeMult,
+                + utils.directionVector(endAngle) * self.width * self.sizeMult,
                 Vector2(arcOffset),
                 math.pi / 2,
                 math.pi,
@@ -431,7 +433,7 @@ class Roundabout(Road):
             surface,
             ROAD_OUTLINE_COLOR,
             offset + self.center,
-            self.width * (sizeMult - 1 / 2),
+            self.width * (self.sizeMult - 1 / 2),
             ROAD_OUTLINE_WIDTH,
         )
 
