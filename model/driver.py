@@ -152,10 +152,10 @@ class Driver:
                 self.appropriateVelocity = utils.lerp(
                     self.appropriateVelocity, otherCar.velocity, 0.05)
 
-                if actualDistance < 40 and otherCar.velocity != 0 and self.appropriateVelocity / otherCar.velocity > 1:
+                if actualDistance < 60 and otherCar.velocity != 0 and self.appropriateVelocity / otherCar.velocity > 1:
                     # Brake based on how close from the other car we are
                     # The closer, the more is needed to brake
-                    self.setBrakeAmount((40 - actualDistance) / 250)
+                    self.setBrakeAmount((60 - actualDistance) / 250)
                     self.setAccelerationAmount(0)
             else:
                 # Interpolate appropriate velocity towards desired velocity

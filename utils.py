@@ -16,6 +16,7 @@ def drawArrow(
     start: Vector2,
     end: Vector2,
     color: tuple = None,
+    width: float = 1,
 ) -> None:
     if end == start:
         return
@@ -24,6 +25,7 @@ def drawArrow(
         color = DEFAULT_ARROW_COLOR
 
     # Get angle between end and start
+    dist = (end - start).magnitude()
     direc = (end - start).normalize()
     angle = angleFromDirection(direc)
 
@@ -34,11 +36,11 @@ def drawArrow(
     arrow1 = directionVector(angle1)
 
     # Main arrow line
-    pygame.draw.line(surface, color, start, end)
+    pygame.draw.line(surface, color, start, end, width)
     # Small line 1
-    pygame.draw.line(surface, color, end, end - arrow0 * 10)
+    pygame.draw.line(surface, color, end, end - arrow0 * dist * .2, width)
     # Small line 2
-    pygame.draw.line(surface, color, end, end - arrow1 * 10)
+    pygame.draw.line(surface, color, end, end - arrow1 * dist * .2, width)
 
 
 # Draws a text at a specified position
@@ -164,16 +166,16 @@ def clamp(x: float, min: float, max: float) -> float:
 
 
 # Returns the given path with smooth curves (more nodes on curve)
-def smoothPathCurves(path: Path) -> Path:
+def smoothPathCurves(path: list[Vector2], precedingNode: Vector2 | None = None) -> list[Vector2]:
     # If path is empty or only one node, don't do anything
-    if len(path.nodes) < 2:
+    if len(path) < 2:
         return path
 
     # New list of nodes
     nodes: list[Vector2] = []
 
     # Copy of current nodes
-    originalNodes = path.nodes.copy()
+    originalNodes = path.copy()
 
     # Remove node duplicates
     for i in range(len(originalNodes) - 2, -1, -1):
@@ -182,17 +184,19 @@ def smoothPathCurves(path: Path) -> Path:
             originalNodes.pop(i + 1)
 
     # Save last node for angle check
-    lastNode: Vector2 | None = None
+    # TODO: Calls to utils.smoothPathCurves() should pass the precedingNode as the following:
+    #        - Find the node in the nodesGraph which connects to the first path node (path[0])
+    #       for node, connections in nodesGraph:
+    #           if connections.contains(path[0]):
+    #               precedingNode = node
+    lastNode = precedingNode
 
-    while len(originalNodes) > 0:
+    i = -1
+    while len(originalNodes) > 1:
+        i += 1
         # Get current and next node
         node = originalNodes.pop(0)
-
-        # Check if this is the last original node
-        if len(originalNodes) == 0:
-            nextNode = nodes[0]
-        else:
-            nextNode = originalNodes[0]
+        nextNode = originalNodes[0]
 
         # Angle between current and next nodes
         directionToNext = (nextNode - node).normalize()
@@ -210,7 +214,12 @@ def smoothPathCurves(path: Path) -> Path:
 
         # Check angle difference
         angleDiff = normalizeAngle(angle0) - normalizeAngle(angle1)
-        if abs(angleDiff) > math.pi * 0.2:
+        while angleDiff > math.pi:
+            angleDiff -= 2 * math.pi
+        while angleDiff < -math.pi:
+            angleDiff += 2 * math.pi
+        print(f'at index {i} got angle of {math.degrees(angleDiff)}')
+        if abs(angleDiff) > math.pi * 0.2:# and abs(angleDiff) < math.pi:
             # Normalize angle diff between [-pi/4, +pi/4] range
             if angleDiff > math.pi / 4:
                 angleDiff -= 2 * math.pi
@@ -260,7 +269,7 @@ def smoothPathCurves(path: Path) -> Path:
             nodes.append(intermediateNode)
 
     # Return new path with updated nodes
-    return Path(nodes)
+    return nodes
 
 
 # Returns a path with nodes from given start and end positions

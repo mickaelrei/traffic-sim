@@ -137,11 +137,15 @@ path = Path([
         3.75 * tileSize,
         3.5 * tileSize - curveArcOffset,
     ),
+    Vector2(
+        3.5 * tileSize - curveArcOffset,
+        3.75 * tileSize,
+    ),
 ])
 
 
 # Make path smoother on curves
-path = utils.smoothPathCurves(path)
+path = Path(utils.smoothPathCurves(path.nodes))
 
 # Other way path
 path1 = Path([
@@ -241,9 +245,13 @@ path1 = Path([
         4.25 * tileSize,
         3.5 * tileSize - curveArcOffset,
     ),
+    Vector2(
+        3.5 * tileSize - curveArcOffset,
+        4.25 * tileSize,
+    ),
 ])
 
-path1 = utils.smoothPathCurves(path1)
+path1 = Path(utils.smoothPathCurves(path1.nodes))
 path1.nodes.reverse()
 
 # Create car instance positioned at first path node
