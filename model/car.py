@@ -59,7 +59,7 @@ class Car:
         initialRotation: float=0
     ) -> None:
         # Car position
-        self.pos = pos
+        self.pos = pos.copy()
 
         # Car size in pixels, for rendering purposes
         self.size = size

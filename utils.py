@@ -167,15 +167,15 @@ def clamp(x: float, min: float, max: float) -> float:
 
 # Returns the given path with smooth curves (more nodes on curve)
 def smoothPathCurves(path: list[Vector2], precedingNode: Vector2 | None = None) -> list[Vector2]:
-    # If path is empty or only one node, don't do anything
-    if len(path) < 2:
+    # If path is empty or less than 3 nodes, don't do anything
+    if len(path) < 3:
         return path
 
     # New list of nodes
     nodes: list[Vector2] = []
 
     # Copy of current nodes
-    originalNodes = path.copy()
+    originalNodes = [p.copy() for p in path]
 
     # Remove node duplicates
     for i in range(len(originalNodes) - 2, -1, -1):
@@ -218,7 +218,6 @@ def smoothPathCurves(path: list[Vector2], precedingNode: Vector2 | None = None) 
             angleDiff -= 2 * math.pi
         while angleDiff < -math.pi:
             angleDiff += 2 * math.pi
-        print(f'at index {i} got angle of {math.degrees(angleDiff)}')
         if abs(angleDiff) > math.pi * 0.2:# and abs(angleDiff) < math.pi:
             # Normalize angle diff between [-pi/4, +pi/4] range
             if angleDiff > math.pi / 4:

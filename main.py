@@ -6,6 +6,9 @@ import contextlib
 with contextlib.redirect_stdout(None):
     import pygame
 
+# Maximum cars in simulation
+MAX_CARS_SIMULATION = 20
+
 # Gets user bool input (yes/no)
 def getUserBoolInput(prompt: str):
     print(f"{prompt} [Y/n]")
@@ -55,14 +58,27 @@ def runSimulationApp() -> None:
     except ValueError:
         return
 
+    # How many cars in the simulation
+    print(f"\nHow many cars in the simulation? [1-{MAX_CARS_SIMULATION}]")
+    numCars = input("> ").strip()
+    try:
+        numCars = int(numCars)
+        if numCars <= 0 or numCars > MAX_CARS_SIMULATION:
+            print("\nInvalid input: Number out of range")
+            return
+    except ValueError:
+        print("Invalid input: Not a number")
+        return
+
     # Create and run app
     from view.simulation import TrafficSimulationApp
 
     app = TrafficSimulationApp(
         600,
         600,
-        60,
+        numCars=numCars,
         roadMapFilePath=f"./road_maps/{files[index - 1]}.json",
+        fps=60,
     )
     app.run()
 
@@ -208,7 +224,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-    # from view.short_path_algo import ShortPathAlgorithmApp
-    # app = ShortPathAlgorithmApp(600, 600, 60, "./road_maps/y.json")
-    # app.run()

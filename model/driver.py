@@ -3,10 +3,11 @@
 from __future__ import annotations
 import pygame
 from pygame.math import Vector2
+import utils
 import math
+from random import randint
 from model.car import Car
 from model.path import Path
-import utils
 
 # Number of rays the driver "shoots" to detect traffic entities
 DRIVER_VIEW_NUM_RAYS = 25
@@ -16,7 +17,7 @@ DRIVER_VIEW_RAY_SPREAD = math.pi * .667
 
 # Class that represents a driver inside a car
 class Driver:
-    def __init__(self, car: Car, path: Path, desiredVelocity: float = 70, initialPathNodeIndex: int = 0) -> None:
+    def __init__(self, car: Car, desiredVelocity: float = 70) -> None:
         # Reference to the driver's car
         self.car = car
 
@@ -27,10 +28,29 @@ class Driver:
         self.appropriateVelocity = self.desiredVelocity
 
         # Driver's current path
-        self.path = path
+        self.path: list[Vector2] | None = None
 
         # Driver's current node index in path
-        self.pathNodeIndex = initialPathNodeIndex
+        self.pathNodeIndex: int | None = None
+
+    def newPath(
+        self,
+        startPoint: Vector2,
+        points: list[Vector2],
+        nodesGraph: dict[str, list[Vector2]],
+    ) -> None:
+        # Clear current path and generate new one which starts on current position
+        self.path = None
+        while self.path == None or len(self.path) < 2:
+            endIndex = randint(0, len(points) - 1)
+            endPoint = points[endIndex]
+            self.path = utils.A_Star(nodesGraph, startPoint, endPoint)
+
+        # Apply smooth path curves
+        self.path = utils.smoothPathCurves(self.path)
+
+        # Reset path index
+        self.pathNodeIndex = 0
 
     # Driver will never use both brake and accelerate pedals at the same time
     def setBrakeAmount(self, amount: float) -> None:
@@ -44,17 +64,31 @@ class Driver:
         self.car.setBrakeAmount(0)
         self.car.setAccelerationAmount(amount)
 
-    def update(self, dt: float, drivers: list[Driver]) -> None:
+    def update(
+        self,
+        dt: float,
+        drivers: list[Driver],
+        points: list[Vector2],
+        nodesGraph: dict[str, list[Vector2]],
+    ) -> None:
         # TODO: Set car stats based on info such as:
         # - Cars in front
         # - Current path trajectory
         # - Traffic lights
 
-        update = True
+        # If no path or already at the end of current path, set new path
+        if self.path == None or self.pathNodeIndex >= len(self.path) - 1:
+            # Find closest node to car's current position
+            dist = 1e10
+            closest = None
+            for point in points:
+                d = (point - self.car.pos).magnitude()
+                if d < dist:
+                    closest = point.copy()
+                    dist = d
 
-        if not update:
-            self.car.update(dt)
-            return
+            # Generate new path
+            self.newPath(closest, points, nodesGraph)
 
         # Check path status
         self.traversePath()
@@ -66,19 +100,10 @@ class Driver:
         self.car.update(dt)
 
     def draw(self, surface: pygame.Surface, offset: Vector2 = Vector2(0, 0), debug: bool = False) -> None:
-        self.path.draw(surface, offset, debug)
+        if self.path != None and debug:
+            for point in self.path:
+                pygame.draw.circle(surface, (255, 127, 0), point + offset, 5)
         self.car.draw(surface, offset, debug)
-
-        # NOTE: This draws all the ray lines from the driver view,
-        # which are too distracting so its commented out only for possible future debugging
-        # if debug:
-        #     lineStart = self.car.pos + utils.directionVector(self.car.rotation) * self.car.size
-        #     angleStep = DRIVER_VIEW_RAY_SPREAD / DRIVER_VIEW_NUM_RAYS
-        #     for i in range(DRIVER_VIEW_NUM_RAYS):
-        #         # Calculate new angle
-        #         angle = self.car.rotation - DRIVER_VIEW_RAY_SPREAD / 2 + i * angleStep
-        #         lineEnd = lineStart + utils.directionVector(angle) * 1500
-        #         pygame.draw.line(surface, (0, 255, 0), offset + lineStart, offset + lineEnd)
 
     def adjustToAppropriateSpeed(self) -> None:
         if self.car.velocity < self.appropriateVelocity:
@@ -163,7 +188,7 @@ class Driver:
                     self.appropriateVelocity, self.desiredVelocity, 0.01)
 
     def traversePath(self) -> None:
-        if self.path == None:
+        if self.path == None or self.pathNodeIndex == None:
             return
 
         # Path algorithm:
@@ -174,8 +199,8 @@ class Driver:
         self.adjustToAppropriateSpeed()
 
         # Get next node
-        nextNodeIndex = (self.pathNodeIndex + 1) % len(self.path.nodes)
-        nextNode = self.path.nodes[nextNodeIndex]
+        nextNodeIndex = self.pathNodeIndex + 1
+        nextNode = self.path[nextNodeIndex].copy()
 
         if self.car.pos.distance_to(nextNode) > self.car.size:
             # Get angle from car to point
