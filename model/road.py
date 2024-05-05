@@ -520,6 +520,55 @@ class IntersectionT(Road):
             ROAD_OUTLINE_WIDTH,
         )
 
+# 4-point intersection road
+class Intersection4(Road):
+    def __init__(self, width: float, center: Vector2, arcOffset: float) -> None:
+        super().__init__(width)
+        self.center = center
+        self.arcOffset = arcOffset
+
+    def draw(self, surface: pygame.Surface, offset: Vector2 = Vector2(0, 0), debug: bool = False) -> None:
+        pygame.draw.circle(surface, (0, 255, 0), offset + self.center, 10, 2)
+
+        utils.drawArc(
+            surface,
+            ROAD_OUTLINE_COLOR,
+            offset + self.center + Vector2(-1, -1) * (self.width * 0.5 + self.arcOffset),
+            Vector2(self.arcOffset),
+            0,
+            math.pi / 2,
+            ROAD_OUTLINE_WIDTH,
+        )
+
+        utils.drawArc(
+            surface,
+            ROAD_OUTLINE_COLOR,
+            offset + self.center + Vector2(1, -1) * (self.width * 0.5 + self.arcOffset),
+            Vector2(self.arcOffset),
+            math.pi / 2,
+            math.pi,
+            ROAD_OUTLINE_WIDTH,
+        )
+
+        utils.drawArc(
+            surface,
+            ROAD_OUTLINE_COLOR,
+            offset + self.center + Vector2(1, 1) * (self.width * 0.5 + self.arcOffset),
+            Vector2(self.arcOffset),
+            math.pi,
+            3 * math.pi / 2,
+            ROAD_OUTLINE_WIDTH,
+        )
+
+        utils.drawArc(
+            surface,
+            ROAD_OUTLINE_COLOR,
+            offset + self.center + Vector2(-1, 1) * (self.width * 0.5 + self.arcOffset),
+            Vector2(self.arcOffset),
+            3 * math.pi / 2,
+            0,
+            ROAD_OUTLINE_WIDTH,
+        )
 
 # Curved road for a turn from north to west (top to left)
 def topLeftCurvedRoad(
@@ -839,6 +888,45 @@ def rule3x2(
     # If no matches, return empty lists
     return [], []
 
+# Defines the callback for all rules in a 3x3 grid
+def rule3x3(
+    topLeft: Vector2,
+    tileMap: list[list[int]],
+    nodesGraph: dict[str, list[Vector2]],
+    mapSize: Vector2,
+    roadWidth: float,
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    # Possibilities in a 3x3 grid:
+    # - 4-point intersection
+    #   [010]
+    #   [111]
+    #   [010]
+
+    # Convert data grid to number
+    y = int(topLeft.y)
+    x = int(topLeft.x)
+    dataNumber = (
+        tileMap[y + 0][x + 0] * 1e8
+        + tileMap[y + 0][x + 1] * 1e7
+        + tileMap[y + 0][x + 2] * 1e6
+        + tileMap[y + 1][x + 0] * 1e5
+        + tileMap[y + 1][x + 1] * 1e4
+        + tileMap[y + 1][x + 2] * 1e3
+        + tileMap[y + 2][x + 0] * 1e2
+        + tileMap[y + 2][x + 1] * 1e1
+        + tileMap[y + 2][x + 2]
+    )
+
+    # Check number match
+    match dataNumber:
+        case 10111010:
+            # Set tilemap value so other rules won't apply to this tile
+            tileMap[y + 1][x + 1] = TILE_CURVED_ROAD
+            return rule4pointIntersection(topLeft, roadWidth, nodesGraph, curveArcOffset)
+
+    # If no matches, return empty lists
+    return [], []
 
 # Defines the callback for all rules in a 5x5 grid
 def rule5x5(
@@ -903,7 +991,7 @@ def rule5x5(
             tileMap[y + 2][x + 2] = TILE_ROUNDABOUT_ROAD
             tileMap[y + 2][x + 3] = TILE_ROUNDABOUT_ROAD
             tileMap[y + 2][x + 4] = TILE_ROUNDABOUT_ROAD
-            return rule4pointIntersection(topLeft, roadWidth, nodesGraph, curveArcOffset)
+            return ruleRoundabout(topLeft, roadWidth, nodesGraph, curveArcOffset)
 
     # If no matches, return empty lists
     return [], []
@@ -1129,8 +1217,8 @@ def ruleBottomLeftCorner(
 
     return roads, points
 
-# Defines the callback for when the rule for a 4-point intersection is met
-def rule4pointIntersection(
+# Defines the callback for when the rule for a roudabout is met
+def ruleRoundabout(
     topLeft: Vector2,
     roadWidth: float,
     nodesGraph: dict[str, list[Vector2]],
@@ -1139,7 +1227,7 @@ def rule4pointIntersection(
     # Roads to be added
     roads: list[Road] = []
 
-    # Add bottom left curve
+    # Add roundabout
     roadCenter = topLeft + Vector2(2, 2)
     roads.append(Roundabout(
         roadWidth,
@@ -1267,7 +1355,18 @@ def ruleTIntersectionRight(
     ))
 
     # Points to be added
-    points: list[Vector2] = []
+    points: list[Vector2] = [
+        roadCenter * roadWidth + Vector2(-roadWidth / 4, roadWidth / 2 + curveArcOffset),
+        roadCenter * roadWidth + Vector2(roadWidth / 4, roadWidth / 2 + curveArcOffset),
+        roadCenter * roadWidth + Vector2(-roadWidth / 4, -roadWidth / 2 - curveArcOffset),
+        roadCenter * roadWidth + Vector2(roadWidth / 4, -roadWidth / 2 - curveArcOffset),
+        roadCenter * roadWidth + Vector2(roadWidth / 2 + curveArcOffset, -roadWidth / 4),
+        roadCenter * roadWidth + Vector2(roadWidth / 2 + curveArcOffset, roadWidth / 4),
+    ]
+
+    nodesGraph[utils.vecToStr(points[1])] = [points[3], points[5]]
+    nodesGraph[utils.vecToStr(points[2])] = [points[0], points[5]]
+    nodesGraph[utils.vecToStr(points[4])] = [points[0], points[3]]
 
     return roads, points
 
@@ -1290,7 +1389,18 @@ def ruleTIntersectionLeft(
     ))
 
     # Points to be added
-    points: list[Vector2] = []
+    points: list[Vector2] = [
+        roadCenter * roadWidth + Vector2(-roadWidth / 4, roadWidth / 2 + curveArcOffset),
+        roadCenter * roadWidth + Vector2(roadWidth / 4, roadWidth / 2 + curveArcOffset),
+        roadCenter * roadWidth + Vector2(-roadWidth / 4, -roadWidth / 2 - curveArcOffset),
+        roadCenter * roadWidth + Vector2(roadWidth / 4, -roadWidth / 2 - curveArcOffset),
+        roadCenter * roadWidth + Vector2(-roadWidth / 2 - curveArcOffset, -roadWidth / 4),
+        roadCenter * roadWidth + Vector2(-roadWidth / 2 - curveArcOffset, roadWidth / 4),
+    ]
+
+    nodesGraph[utils.vecToStr(points[1])] = [points[3], points[4]]
+    nodesGraph[utils.vecToStr(points[2])] = [points[0], points[4]]
+    nodesGraph[utils.vecToStr(points[5])] = [points[0], points[3]]
 
     return roads, points
 
@@ -1313,7 +1423,18 @@ def ruleTIntersectionTop(
     ))
 
     # Points to be added
-    points: list[Vector2] = []
+    points: list[Vector2] = [
+        roadCenter * roadWidth + Vector2(-roadWidth / 2 - curveArcOffset, -roadWidth / 4),
+        roadCenter * roadWidth + Vector2(-roadWidth / 2 - curveArcOffset, roadWidth / 4),
+        roadCenter * roadWidth + Vector2(roadWidth / 2 + curveArcOffset, -roadWidth / 4),
+        roadCenter * roadWidth + Vector2(roadWidth / 2 + curveArcOffset, roadWidth / 4),
+        roadCenter * roadWidth + Vector2(-roadWidth / 4, -roadWidth / 2 - curveArcOffset),
+        roadCenter * roadWidth + Vector2(roadWidth / 4, -roadWidth / 2 - curveArcOffset),
+    ]
+
+    nodesGraph[utils.vecToStr(points[1])] = [points[3], points[5]]
+    nodesGraph[utils.vecToStr(points[2])] = [points[0], points[5]]
+    nodesGraph[utils.vecToStr(points[4])] = [points[0], points[3]]
 
     return roads, points
 
@@ -1336,9 +1457,59 @@ def ruleTIntersectionBottom(
     ))
 
     # Points to be added
-    points: list[Vector2] = []
+    points: list[Vector2] = [
+        roadCenter * roadWidth + Vector2(-roadWidth / 2 - curveArcOffset, -roadWidth / 4),
+        roadCenter * roadWidth + Vector2(-roadWidth / 2 - curveArcOffset, roadWidth / 4),
+        roadCenter * roadWidth + Vector2(roadWidth / 2 + curveArcOffset, -roadWidth / 4),
+        roadCenter * roadWidth + Vector2(roadWidth / 2 + curveArcOffset, roadWidth / 4),
+        roadCenter * roadWidth + Vector2(-roadWidth / 4, roadWidth / 2 + curveArcOffset),
+        roadCenter * roadWidth + Vector2(roadWidth / 4, roadWidth / 2 + curveArcOffset),
+    ]
+
+    nodesGraph[utils.vecToStr(points[1])] = [points[3], points[4]]
+    nodesGraph[utils.vecToStr(points[2])] = [points[0], points[4]]
+    nodesGraph[utils.vecToStr(points[5])] = [points[0], points[3]]
 
     return roads, points
+
+# Defines the callback for when the rule for a 4-point intersection is met
+def rule4pointIntersection(
+    topLeft: Vector2,
+    roadWidth: float,
+    nodesGraph: dict[str, list[Vector2]],
+    curveArcOffset: float,
+) -> tuple[list[Road], list[Vector2]]:
+    # Roads to be added
+    roads: list[Road] = []
+
+    # Add curve
+    roadCenter = topLeft + Vector2(1, 1)
+    roads.append(Intersection4(
+        roadWidth,
+        roadCenter * roadWidth,
+        curveArcOffset,
+    ))
+
+    # Points to be added
+    points: list[Vector2] = [
+        roadCenter * roadWidth + Vector2(-roadWidth / 2 - curveArcOffset, -roadWidth / 4),
+        roadCenter * roadWidth + Vector2(-roadWidth / 2 - curveArcOffset, roadWidth / 4),
+        roadCenter * roadWidth + Vector2(roadWidth / 2 + curveArcOffset, -roadWidth / 4),
+        roadCenter * roadWidth + Vector2(roadWidth / 2 + curveArcOffset, roadWidth / 4),
+        roadCenter * roadWidth + Vector2(-roadWidth / 4, -roadWidth / 2 - curveArcOffset),
+        roadCenter * roadWidth + Vector2(roadWidth / 4, -roadWidth / 2 - curveArcOffset),
+        roadCenter * roadWidth + Vector2(-roadWidth / 4, roadWidth / 2 + curveArcOffset),
+        roadCenter * roadWidth + Vector2(roadWidth / 4, roadWidth / 2 + curveArcOffset),
+    ]
+
+    nodesGraph[utils.vecToStr(points[1])] = [points[3], points[5], points[6]]
+    nodesGraph[utils.vecToStr(points[2])] = [points[0], points[5], points[6]]
+    nodesGraph[utils.vecToStr(points[4])] = [points[0], points[3], points[6]]
+    nodesGraph[utils.vecToStr(points[7])] = [points[0], points[3], points[5]]
+
+    return roads, points
+
+
 
 # List of rules for creating roads based on a tilemap
 roadRules: list[tuple[str, Callable]] = [
@@ -1347,6 +1518,7 @@ roadRules: list[tuple[str, Callable]] = [
     ('2|1', rule2x1),
     ('2|3', rule2x3),
     ('3|2', rule3x2),
+    ('3|3', rule3x3),
     ('5|5', rule5x5),
 ]
 
