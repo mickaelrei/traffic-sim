@@ -55,8 +55,8 @@ class TrafficSim:
 
                 # Point is far enough from all other cars, calculate orientation
                 point = self.points[index]
-                connectsTo = self.nodesGraph[utils.vecToStr(point)]
-                if connectsTo != None and len(connectsTo) > 0:
+                connectsTo = self.nodesGraph.get(utils.vecToStr(point))
+                if connectsTo != None and len(connectsTo) > 0 and connectsTo[0] != point:
                     # This point is connected to at least one other point, use that orientation
                     direction = (connectsTo[0] - point).normalize()
                     angle = utils.angleFromDirection(direction)
@@ -71,6 +71,8 @@ class TrafficSim:
                         abs(angle - 3 * math.pi / 2) > 1e-5
                     ):
                         valid = False
+                else:
+                    valid = False
 
             # If after many attemps still not valid, can't fit any more cars
             if not valid:

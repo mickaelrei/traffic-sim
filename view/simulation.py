@@ -1,13 +1,8 @@
 from model.app import PygameApp
-from model.road import Road, RoadLine, roadRules
-from model.driver import Driver
-from model.car import Car
 from model.traffic_sim import TrafficSim
 import utils
 import math
 import pygame
-import json
-from random import randint
 from pygame.event import Event
 from pygame.math import Vector2
 
@@ -130,13 +125,13 @@ class TrafficSimulationApp(PygameApp):
 
         if self.debug:
             for point in self.trafficSim.points:
-                pygame.draw.circle(trafficSurface, (0, 127, 255), point + self.cameraOffset, 5, 2)
+                pygame.draw.circle(trafficSurface, (0, 127, 255), point + worldOffset, 5, 2)
 
             for node, connections in self.trafficSim.nodesGraph.items():
                 x, y = node.split("|")
                 start = Vector2(int(x), int(y))
                 for p in connections:
-                    utils.drawArrow(trafficSurface, start + self.cameraOffset, p + self.cameraOffset, (255, 0, 127), 2)
+                    utils.drawArrow(trafficSurface, start + worldOffset, p + worldOffset, (255, 0, 127), 2)
 
         # Update and draw traffic
         if self.update:
@@ -189,4 +184,13 @@ class TrafficSimulationApp(PygameApp):
             anchorX=0.5,
             anchorY=-0.5,
             fontSize=25,
+        )
+
+        utils.drawText(
+            self.window,
+            f"FPS: {self.clock.get_fps():.0f}",
+            Vector2(self.width - 5, self.height - 5),
+            anchorX=-0.5,
+            anchorY=-0.5,
+            fontSize=20,
         )
