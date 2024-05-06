@@ -528,8 +528,6 @@ class Intersection4(Road):
         self.arcOffset = arcOffset
 
     def draw(self, surface: pygame.Surface, offset: Vector2 = Vector2(0, 0), debug: bool = False) -> None:
-        pygame.draw.circle(surface, (0, 255, 0), offset + self.center, 10, 2)
-
         utils.drawArc(
             surface,
             ROAD_OUTLINE_COLOR,
