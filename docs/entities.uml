@@ -1,0 +1,193 @@
+@startuml
+
+skin rose
+
+interface Entity {
+  +update(dt: float)
+  +draw(surface: Surface, offset: Vector2, debug: bool) 
+}
+
+class Car implements Entity {
+  +pos: Vector2
+  -size: Vector2
+  
+  -accelerationAmount: float
+  -brakeAmount: float
+  -reverse: bool
+  
+  -accelerationSpeed: float
+  -brakeForce: float
+  
+  -steering: float
+  -velocity: float
+  -rotation: float
+  
+  -textureScale: float
+  -wheelAxisAspectRatio: float
+  
+  +setSteering(steering: float)
+  +setAccelerationAmount(acc: float)
+  +setBrakeAmount(brake: float)
+  
+  +horizontalWheelDist() : float
+  +verticalWheelDist() : float
+  +maxSteeringAngle() : float
+  +wheelAngle() : float
+  
+  +frontLeftWheelPos() : Vector2
+  +frontRightWheelPos() : Vector2
+  +backLeftWheelPos() : Vector2
+  +backRightWheelPos() : Vector2
+}
+
+class Driver implements Entity {
+  +car: Car
+  +desiredVelocity: float
+  +appropriateVelocity: float
+  +path: Vector2[]
+  -pathNodeIndex: int
+  
+  +setBrakeAmount(amount: float)
+  +setAccelerationAmount(amount: float)
+  
+  -newPath(startPoint: Vector2, points: Vector2[], nodesGraph: map[str, Vector2[]])
+  -adjustToAppropriateSpeed()
+  -checkCarCollisions(drivers: Driver[])
+  -traversePath()
+}
+
+class TrafficSim implements Entity {
+  +drivers: Driver[]
+  +roadWidth: float
+  +roads: Road[]
+  +points: Vector2[]
+  +nodesGraph: map[str, Vector2[]]
+  
+  +addDriver(driver: Driver)
+  -loadRoadMap(filePath: str)
+  
+}
+
+class Path implements Entity {
+  +nodes: Vector2[]
+}
+
+class RoadLine {
+  +start: Vector2
+  +end: Vector2
+  
+  +contains(point: Vector2) : bool
+}
+
+abstract class Road {
+  +width: float
+  +draw(surface: Surface, offset: Vector2, debug: bool)
+}
+
+class StraightRoad extends Road {
+  +start: Vector2
+  +end: Vector2
+  
+  -direction: Vector2
+  -normal: Vector2
+  -angle: float
+}
+
+class CurvedRoad extends Road {
+  +center: Vector2
+  +arcOffset: float
+  +curveAngle: float
+  
+  -cos: float
+  -sin: float
+  -initialAngle: float
+  -finalAngle: float
+}
+
+class Roundabout extends Road {
+  +center: Vector2
+  +connectsTop: bool
+  +connectsBottom: bool
+  +connectsLeft: bool
+  +connectsRight: bool
+  
+  -sizeMult: float
+}
+
+class IntersectionT extends Road {
+  +center: Vector2
+  +arcOffset: float
+  +curveAngle: float
+  
+  -direction: Vector2
+  -normal: Vector2
+
+  -straightStart: Vector2
+  -straightEnd: Vector2
+  
+  -arcCenter0: Vector2
+  -arcCenter1: Vector2
+}
+
+class Intersection4 extends Road {
+  +center: Vector2
+  +arcOffset: float
+}
+
+class PygameApp {
+  +width: int
+  +height: int
+  +window: Window
+  +clock: Clock
+  +fps: int
+  +running: bool
+  
+  -lastTick: int
+  
+  +onEvent(event: Event)
+  +onUpdate(dt: float)
+  
+  +run()
+}
+
+class TrafficSimulationApp extends PygameApp {
+  +debug: bool
+  +update: bool
+  +fastUpdate: bool
+  +isFocused: bool
+  
+  +cameraOffset: Vector2
+  +cameraRotation: float
+  +cameraRotateDirection: float
+  +cameraRotateSpeed: float
+  +focusedIndex: int
+  +leftMouseButtonDown: bool
+  +trafficSim: TrafficSim
+}
+
+class MapEditorApp extends PygameApp {
+  tileSize: int
+  roadLines: RoadLine[]
+  cameraPos: Vector2
+  mousePos: Vector2
+  lastClickPos: Vector2
+  mouseDown: bool
+  shiftDown: bool
+  
+  +worldToTile(v: Vector2) : Vector2
+  
+  +tileIndexFromWorldPos(v: Vector2) : Vector2
+  +worldPosFromTileIndex(v: Vector2) : Vector2
+  
+  +addRoadLine(endWorld: Vector2)
+  +isRoadMapValid() : bool
+}
+
+Driver *-- Car
+TrafficSim *-- Driver
+TrafficSim *-- Road
+
+TrafficSimulationApp *-- TrafficSim
+MapEditorApp *-- RoadLine
+
+@enduml
